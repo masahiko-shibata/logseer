@@ -11,7 +11,7 @@ from sklearn import svm
 from sklearn.ensemble import RandomForestClassifier
 
 from .models import getModel, getEmbeddingLayer
-from .checkpoints import MultiMetricCheckpoint
+from .checkpoints import MultiMetricCheckpoint, BestF1Checkpoint
 from .loader import Loader
 from .tester import Tester
 
@@ -52,7 +52,10 @@ def prepare_sequences(tokenizer, train_texts, val_texts, test_texts, max_sequenc
 
 def train_nn(model_name, embedding_layer, train_data, train_labels, val_data, val_labels,
              test_data, test_labels, tester, *,
-             model_save_path, epochs, batch_size, learning_rate, max_loss, retrain=False):
+             model_save_path, epochs, batch_size, learning_rate, max_loss, retrain=False,
+             checkpoint_type='multi_metric', start_from_epoch=0,
+             use_early_stopping=False, patience=None, monitor='val_recall', mode='max',
+             restore_best_weights=False):
     train_labels = np.array(train_labels, dtype=np.int32)
     val_labels   = np.array(val_labels,   dtype=np.int32)
 
@@ -75,12 +78,34 @@ def train_nn(model_name, embedding_layer, train_data, train_labels, val_data, va
                   metrics=[keras.metrics.Precision(name='precision'),
                            keras.metrics.Recall(name='recall')])
 
+    # Build checkpoint callback
+    if checkpoint_type == 'best_f1':
+        checkpoint_cb = BestF1Checkpoint(filepath=model_save_path,
+                                         start_from_epoch=start_from_epoch)
+    elif checkpoint_type == 'standard':
+        checkpoint_cb = keras.callbacks.ModelCheckpoint(
+            filepath=model_save_path, monitor=monitor, mode=mode,
+            save_best_only=True, restore_best_weights=restore_best_weights,
+            verbose=1)
+    else:  # 'multi_metric' (default)
+        checkpoint_cb = MultiMetricCheckpoint(filepath=model_save_path,
+                                              max_loss=max_loss,
+                                              start_from_epoch=start_from_epoch)
+
+    callbacks = [checkpoint_cb]
+
+    # Optional early stopping
+    if use_early_stopping and patience is not None:
+        callbacks.append(keras.callbacks.EarlyStopping(
+            monitor=monitor, mode=mode, patience=patience,
+            restore_best_weights=restore_best_weights, verbose=1))
+
     model.fit(train_data, train_labels,
               validation_data=(val_data, val_labels),
               epochs=epochs,
               verbose=1,
               batch_size=batch_size,
-              callbacks=[MultiMetricCheckpoint(filepath=model_save_path, max_loss=max_loss)])
+              callbacks=callbacks)
 
     model = load_model(model_save_path)
     tester.testModel(model, test_data, test_labels, threshold=0.5)
@@ -181,12 +206,24 @@ def run_training(
     learning_rate=0.0003,
     max_loss=0.7,
     retrain=False,
+    checkpoint_type='multi_metric',
+    start_from_epoch=0,
+    use_early_stopping=False,
+    patience=None,
+    monitor='val_recall',
+    mode='max',
+    restore_best_weights=False,
     test_nn=True,
     test_xgb=True,
     test_svm=False,
     test_rf=False,
 ):
-    """Run the full training loop and return the Tester instance."""
+    """Run the full training loop and return the Tester instance.
+
+    checkpoint_type: 'multi_metric' (default), 'best_f1', or 'standard'
+    use_early_stopping: set to True to enable EarlyStopping (also requires patience to be set)
+    patience: number of epochs with no improvement before stopping (only used when use_early_stopping=True)
+    """
     ld = Loader()
     tester = Tester()
 
@@ -218,6 +255,10 @@ def run_training(
                 tester,
                 model_save_path=model_save_path, epochs=epochs, batch_size=batch_size,
                 learning_rate=learning_rate, max_loss=max_loss, retrain=retrain,
+                checkpoint_type=checkpoint_type, start_from_epoch=start_from_epoch,
+                use_early_stopping=use_early_stopping, patience=patience,
+                monitor=monitor, mode=mode,
+                restore_best_weights=restore_best_weights,
             )
             if not ok:
                 continue

@@ -14,7 +14,7 @@ class MultiMetricCheckpoint(keras.callbacks.Callback):
         self.max_loss = max_loss
         self.best_recall = 0.0
         self.best_precision = 0.0
-        self.best_loss = 0.0
+        self.best_loss = float('inf')
 
     def on_epoch_end(self, epoch, logs=None):
         if epoch < self.start_from_epoch:
@@ -26,7 +26,7 @@ class MultiMetricCheckpoint(keras.callbacks.Callback):
 
         val_recall    = logs.get('val_recall', 0.0)
         val_precision = logs.get('val_precision', 0.0)
-        val_loss      = logs.get('val_loss', 0.0)
+        val_loss      = logs.get('val_loss', float('inf'))
 
         if val_recall < self.best_recall:
             return

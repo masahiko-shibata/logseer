@@ -34,8 +34,6 @@ class Loader:
 
                 endval = len(os.listdir(path)) - 1
                 for i, dname in enumerate(sorted(os.listdir(path))):
-                    if dname.find('a') != -1:
-                        continue
                     if int(dname) < fromid or int(dname) > toid:
                         continue
                     self.progress(i, endval)
@@ -116,12 +114,14 @@ class Loader:
         print()
 
     def load(self, DATA_DIR, numchar=3000, toid=6000):
+        self.nb_errors = 0
         sfiles, efiles = self.loadfiles(DATA_DIR, toid=toid)
         etext_label = self.gen_text_label(efiles, 1, numchar=numchar, multiple=1)
         stext_label = self.gen_text_label(sfiles, 0, numchar=numchar, multiple=1)
         self.stored_data = stext_label + etext_label
 
-    def getdata(self, DATA_DIR, TEST_ERRORNUM=10, SUCCESS_LOG_RATIO=99, SUCCESS_LOG_RATIO_TEST=12.4, force_reload=False, numchar=3000, toid=6000):
+    def getdata(self, DATA_DIR, TEST_ERRORNUM=10, SUCCESS_LOG_RATIO=99, SUCCESS_LOG_RATIO_TEST=12.4,
+                force_reload=False, numchar=3000, toid=6000):
         if len(self.stored_data) == 0 or force_reload:
             self.load(DATA_DIR, numchar=numchar, toid=toid)
 
@@ -154,10 +154,8 @@ class Loader:
                     text_labels.append(j)
                     nb_success -= 1
 
-        for vrow in test_text_labels:
-            for row in list(text_labels):
-                if vrow[2] == row[2]:
-                    text_labels.remove(row)
+        test_ids = {row[2] for row in test_text_labels}
+        text_labels = [row for row in text_labels if row[2] not in test_ids]
 
         with open('datalist.log', 'a', encoding='utf-8') as f:
             for row in test_text_labels:

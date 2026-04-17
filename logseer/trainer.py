@@ -190,6 +190,7 @@ def significance_test(tester):
 def run_training(
     data_dir,
     *,
+    loader_class=None,
     max_nb_words=24000,
     max_sequence_length=26000,
     embedding_dim=32,
@@ -219,6 +220,8 @@ def run_training(
     test_xgb=True,
     test_svm=False,
     test_rf=False,
+    success_log_ratio=99,
+    success_log_ratio_test=12.4,
 ):
     """Run the full training loop and return the Tester instance.
 
@@ -227,13 +230,20 @@ def run_training(
     use_early_stopping: set to True to enable EarlyStopping (also requires patience to be set)
     patience: number of epochs with no improvement before stopping (only used when use_early_stopping=True)
     """
+    from .jde_loader import JDELoader
+    if loader_class is None:
+        loader_class = JDELoader
     ld = loader_class()
     tester = Tester()
 
     for i in range(repetition):
         print()
         print('Repetition %s' % str(i + 1))
-        texts, labels, test_texts, test_labels = ld.getdata(data_dir, numchar=numchar, toid=toid)
+        texts, labels, test_texts, test_labels = ld.getdata(
+            data_dir, numchar=numchar, toid=toid,
+            SUCCESS_LOG_RATIO=success_log_ratio,
+            SUCCESS_LOG_RATIO_TEST=success_log_ratio_test,
+        )
         print('Found %s texts.' % len(texts))
         print('Found %s test texts.' % len(test_texts))
 

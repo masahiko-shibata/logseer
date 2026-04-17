@@ -57,7 +57,7 @@ The current implementation and training data are based on JD Edwards EnterpriseO
 - A failed deployment times out after ~30 minutes, forcing all users offline
 - Recovery (restart + re-deploy) takes approximately 15 minutes of additional downtime
 
-Before each deployment, LogSeer collects the current JDE server logs from all running kernel processes and predicts whether the deployment will succeed. If failure is predicted, preentative system restarts are initiated to avoid the timeout entirely.
+Before each deployment, LogSeer collects the current JDE server logs from all running kernel processes and predicts whether the deployment will succeed. If failure is predicted, preventive system restarts are initiated to avoid the timeout entirely.
 
 ## Results
 
@@ -102,7 +102,7 @@ data/
     └── ...
 ```
 
-Each subdirectory contains the log files corrected before a single operation run. Multiple log files per run are supported and combined during preprocessing.
+Each subdirectory contains the log files collected before a single operation run. Multiple log files per run are supported and combined during preprocessing.
 
 ## Training
 

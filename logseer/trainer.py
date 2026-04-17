@@ -10,8 +10,10 @@ import xgboost as xgb
 from sklearn import svm
 from sklearn.ensemble import RandomForestClassifier
 
-from .models import getModel
+from .models import getModel, getEmbeddingLayer
 from .checkpoints import MultiMetricCheckpoint
+from .loader import Loader
+from .tester import Tester
 
 
 def split_data(texts, labels, test_texts, test_labels,
@@ -158,3 +160,78 @@ def significance_test(tester):
         n_errors = tp + fn
         print(f'{name}: TP={tp}/{n_errors}, p-value={p_value:.6f}',
               '*** significant' if p_value < 0.05 else '')
+
+
+def run_training(
+    data_dir,
+    *,
+    max_nb_words=24000,
+    max_sequence_length=26000,
+    embedding_dim=32,
+    validation_split=0.1,
+    validate_on_test_data=False,
+    epochs=60,
+    batch_size=32,
+    model_save_path='logseer.keras',
+    tokenizer_path='tokenizer.pickle',
+    embedding_layer_type='vanilla',
+    model_name='LogCNNLite',
+    repetition=100,
+    error_weight=2,
+    learning_rate=0.0003,
+    max_loss=0.7,
+    retrain=False,
+    test_nn=True,
+    test_xgb=True,
+    test_svm=False,
+    test_rf=False,
+):
+    """Run the full training loop and return the Tester instance."""
+    ld = Loader()
+    tester = Tester()
+
+    for i in range(repetition):
+        print()
+        print('Repetition %s' % str(i + 1))
+        texts, labels, test_texts, test_labels = ld.getdata(data_dir)
+        print('Found %s texts.' % len(texts))
+        print('Found %s test texts.' % len(test_texts))
+
+        train_texts, train_labels, val_texts, val_labels = split_data(
+            texts, labels, test_texts, test_labels,
+            validation_split=validation_split,
+            validate_on_test_data=validate_on_test_data,
+        )
+
+        tokenizer = setup_tokenizer(train_texts, tokenizer_path, max_nb_words, retrain=retrain)
+        print('Found %s unique tokens in the tokenizer.' % len(tokenizer.word_index))
+
+        if test_nn:
+            train_data, val_data, test_data = prepare_sequences(
+                tokenizer, train_texts, val_texts, test_texts, max_sequence_length)
+            emb_layer = getEmbeddingLayer(
+                embedding_layer_type, max_nb_words, embedding_dim,
+                max_sequence_length, word_index=tokenizer.word_index)
+            ok = train_nn(
+                model_name, emb_layer,
+                train_data, train_labels, val_data, val_labels, test_data, test_labels,
+                tester,
+                model_save_path=model_save_path, epochs=epochs, batch_size=batch_size,
+                learning_rate=learning_rate, max_loss=max_loss, retrain=retrain,
+            )
+            if not ok:
+                continue
+
+        train_sklearn(tokenizer, train_texts, test_texts, train_labels, test_labels, tester,
+                      test_xgb=test_xgb, test_svm=test_svm, test_rf=test_rf,
+                      error_weight=error_weight)
+
+        if i % 10 == 9:
+            tester.total(heatmap=False)
+
+        print_ensemble(tester)
+
+    tester.total(heatmap=True)
+    significance_test(tester)
+    return tester
+

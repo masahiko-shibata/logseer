@@ -3,7 +3,8 @@ from .tester import Tester
 from .models import getModel, getEmbeddingLayer, SelfAttention
 from .checkpoints import MultiMetricCheckpoint, BestF1Checkpoint
 from .trainer import (split_data, setup_tokenizer, prepare_sequences,
-                      train_nn, train_sklearn, print_ensemble, significance_test)
+                      train_nn, train_sklearn, print_ensemble, significance_test,
+                      run_training)
 
 __all__ = [
     'Loader',
@@ -20,4 +21,5 @@ __all__ = [
     'train_sklearn',
     'print_ensemble',
     'significance_test',
+    'run_training',
 ]

@@ -222,11 +222,12 @@ def run_training(
 ):
     """Run the full training loop and return the Tester instance.
 
+    loader_class: Loader subclass to use (default: JDELoader). Pass Loader for generic use.
     checkpoint_type: 'multi_metric' (default), 'best_f1', or 'standard'
     use_early_stopping: set to True to enable EarlyStopping (also requires patience to be set)
     patience: number of epochs with no improvement before stopping (only used when use_early_stopping=True)
     """
-    ld = Loader()
+    ld = loader_class()
     tester = Tester()
 
     for i in range(repetition):

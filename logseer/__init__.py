@@ -8,6 +8,7 @@ from .trainer import (split_data, setup_tokenizer, prepare_sequences,
 
 __all__ = [
     'Loader',
+    'JDELoader',
     'Tester',
     'getModel',
     'getEmbeddingLayer',

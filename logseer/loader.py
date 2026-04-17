@@ -5,6 +5,8 @@ import numpy as np
 
 
 class Loader:
+    """Generic log loader. Subclass and override extract_file_tag() and
+    clean_domain() to add system-specific behaviour."""
 
     def __init__(self):
         self.stored_data = []
@@ -48,12 +50,16 @@ class Loader:
 
         return sfiles, efiles
 
+    def extract_file_tag(self, file):
+        """Return a domain-specific tag string for a single log file.
+        Override in subclasses to inject process type or other metadata tags.
+        """
+        return ''
+
     def gen_text_label(self, files, label_id, numchar=3000, multiple=1):
         print('*** Generating Data ***')
         text_label = []
         endval = len(files) - 1
-        num_k = 0
-        num_n = 0
         for i, item in enumerate(files):
             filegroup = item[0]
             dname = item[1]
@@ -65,49 +71,20 @@ class Loader:
                 if index == -1:
                     index = start_index
                 str_to_add = file[index:]
-
-                index = file.find('Kernel of Type:', 0, 200)
-                ktype = ''
-                if index != -1:
-                    num_k = num_k + 1
-                    if file.find('UBE', index+16, index+26) != -1:
-                        ktype = 'UBE'
-                    elif file.find('SECURITY', index+16, index+26) != -1:
-                        ktype = 'SECURITY'
-                    elif file.find('WORK FLOW', index+16, index+26) != -1:
-                        ktype = 'WORKFLOW'
-                    elif file.find('CALLOBJ', index+16, index+26) != -1:
-                        ktype = 'CALLOBJ'
-                    elif file.find('METADATA', index+16, index+26) != -1:
-                        ktype = 'METADATA'
-                    elif file.find('MANAGEMENT', index+16, index+26) != -1:
-                        ktype = 'MANAGEMENT'
-                    elif file.find('TEXTSEARCH', index+16, index+26) != -1:
-                        ktype = 'TEXTSEARCH'
-                    elif file.find('SAW', index+16, index+26) != -1:
-                        ktype = 'SAW'
-                    elif file.find('PACKAGE', index+16, index+26) != -1:
-                        ktype = 'PACKAGE'
-                    elif file.find('QUEUE', index+16, index+26) != -1:
-                        ktype = 'QUEUE'
-                    elif file.find('XML', index+16, index+26) != -1:
-                        ktype = 'XML'
-                elif file.find('jdenet_n> registered', 0, 200) != -1:
-                    num_n = num_n + 1
-                    ktype = 'JDENET'
-
-                t.append(str_to_add + ' ***' + ktype + 'LOG*** ')
+                tag = self.extract_file_tag(file)
+                t.append(str_to_add + (' ***' + tag + 'LOG*** ' if tag else ' '))
             for rep in range(multiple):
                 np.random.shuffle(t)
                 text_label.append([''.join(t), label_id, dname])
                 if label_id == 1:
-                    self.nb_errors = self.nb_errors + 1
+                    self.nb_errors += 1
         print()
-        print('Found %s kernel logs.' % num_k)
-        print('Found %s jdenet logs.' % num_n)
         self.clean(text_label)
-
         return text_label
+
+    def clean_domain(self, t):
+        """Apply domain-specific text normalization. Override in subclasses."""
+        return t
 
     def clean(self, text_label):
         print('*** Cleaning Data ***')
@@ -121,25 +98,11 @@ class Loader:
             t = re.sub(r'(^|\s)[A-Z][a-z][a-z][ ]{1,2}[0-9]{1,2} [0-9][0-9]:[0-9][0-9]:[0-9][0-9]\.[0-9]+(\s|$)', ' ', t)
             t = re.sub(r'(^|\s)[A-Z][a-z][a-z] [A-Z][a-z][a-z][ ]{1,2}[0-9]{1,2} [0-9][0-9]:[0-9][0-9]:[0-9][0-9](\s|$)', ' ', t)
             t = re.sub(r'(^|\s)[0-9]+:[0-9]+:[0-9]+\.[0-9]+(\s|$)', ' ', t)
-            # Directory name
-            t = re.sub(r'/slot/[A-Za-z0-9/]+/', '', t)
             # IP address
             t = re.sub(r'=[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+[,]*(\s|$)', '=ip ', t)
             t = re.sub(r'<[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+>', '<ip>', t)
-            # JDE message IDs
-            t = re.sub(r'(^|\s)msgId[=\-][0-9]+[\.]*(\s|$)', 'msgId=num ', t)
-            t = re.sub(r'(^|\s)msgPort[=\-][0-9]+[\.]*(\s|$)', 'msgPort=num ', t)
-            t = re.sub(r'(^|\s)reqKrnl[=\-][0-9]+[\.]*(\s|$)', 'reqKrnl=num ', t)
-            t = re.sub(r'(^|\s)reqKrnl[=\-][0-9]+[\.]*(\s|$)', 'resKrnl=num ', t)
-            t = re.sub(r'(^|\s)reqNet[=\-][0-9]+[\.]*(\s|$)', 'reqNet=num ', t)
-            t = re.sub(r'(^|\s)resNet[=\-][0-9]+[\.]*(\s|$)', 'resNet=num ', t)
-            t = re.sub(r'(^|\s)maxrows=[0-9]+(\s|$)', ')maxrows=num  ', t)
-            t = re.sub(r'(^|\s)fetched=[0-9]+(\s|$)', 'fetched=num  ', t)
-            t = re.sub(r'<Krnl[0-9]+ReqQ>', '<Krnl_num_ReqQ>', t)
-            t = re.sub(r'(^|\s)conn=[0-9a-f]{8}(\s|$)', 'conn=hex  ', t)
-            t = re.sub(r'(^|\s)requ=[0-9a-f]{8}(\s|$)', 'requ=hex  ', t)
-            # Network errors
-            t = re.sub(r'le_net_error [0-9][0-9]:<.+?> <.*?>', 'le_net_error num:', t)
+            # Domain-specific patterns
+            t = self.clean_domain(t)
             # Other numbers
             t = re.sub(r'(^|\s)[0-9]+[\.:,/-]*(\s|$)', ' num ', t)
             t = re.sub(r'(^|\s)[0-9]+[/][0-9\-]+(\s|$)', ' num ', t)
@@ -176,7 +139,7 @@ class Loader:
                 if nb_test_error > 0 and j[2] not in all_test_list:
                     test_text_labels.append(j)
                     all_test_list.append(j[2])
-                    nb_test_error = nb_test_error - 1
+                    nb_test_error -= 1
                     continue
                 else:
                     text_labels.append(j)
@@ -184,12 +147,12 @@ class Loader:
             else:
                 if nb_test_success > 0 and j[2] not in all_test_list:
                     test_text_labels.append(j)
-                    nb_test_success = nb_test_success - 1
+                    nb_test_success -= 1
                     all_test_list.append(j[2])
                     continue
                 elif nb_success > 0:
                     text_labels.append(j)
-                    nb_success = nb_success - 1
+                    nb_success -= 1
 
         for vrow in test_text_labels:
             for row in list(text_labels):

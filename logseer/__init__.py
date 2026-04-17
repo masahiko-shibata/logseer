@@ -1,4 +1,5 @@
 from .loader import Loader
+from .jde_loader import JDELoader
 from .tester import Tester
 from .models import getModel, getEmbeddingLayer, SelfAttention
 from .checkpoints import MultiMetricCheckpoint, BestF1Checkpoint

@@ -1,0 +1,11 @@
+*.keras
+*.pickle
+*.pkl
+*.h5
+*.log
+datalist.log
+result.txt
+__pycache__/
+.ipynb_checkpoints/
+.idea
+.data

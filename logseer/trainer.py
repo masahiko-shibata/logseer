@@ -50,7 +50,8 @@ def prepare_sequences(tokenizer, train_texts, val_texts, test_texts, max_sequenc
 
 def train_nn(model_name, embedding_layer, train_data, train_labels, val_data, val_labels,
              test_data, test_labels, tester, *,
-             model_save_path, epochs, batch_size, learning_rate, max_loss, retrain=False):
+             model_save_path, epochs, batch_size, learning_rate, max_loss,
+             error_weight=1, retrain=False):
     train_labels = np.array(train_labels, dtype=np.int32)
     val_labels   = np.array(val_labels,   dtype=np.int32)
 
@@ -73,11 +74,13 @@ def train_nn(model_name, embedding_layer, train_data, train_labels, val_data, va
                   metrics=[keras.metrics.Precision(name='precision'),
                            keras.metrics.Recall(name='recall')])
 
+    class_weight = {0: 1.0, 1: float(error_weight)} if error_weight != 1 else None
     model.fit(train_data, train_labels,
               validation_data=(val_data, val_labels),
               epochs=epochs,
               verbose=1,
               batch_size=batch_size,
+              class_weight=class_weight,
               callbacks=[MultiMetricCheckpoint(filepath=model_save_path, max_loss=max_loss)])
 
     model = load_model(model_save_path)

@@ -206,6 +206,8 @@ def run_training(
     learning_rate=0.0003,
     max_loss=0.7,
     retrain=False,
+    numchar=3000,
+    toid=6000,
     checkpoint_type='multi_metric',
     start_from_epoch=0,
     use_early_stopping=False,
@@ -230,7 +232,7 @@ def run_training(
     for i in range(repetition):
         print()
         print('Repetition %s' % str(i + 1))
-        texts, labels, test_texts, test_labels = ld.getdata(data_dir)
+        texts, labels, test_texts, test_labels = ld.getdata(data_dir, numchar=numchar, toid=toid)
         print('Found %s texts.' % len(texts))
         print('Found %s test texts.' % len(test_texts))
 

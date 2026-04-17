@@ -152,15 +152,15 @@ class Loader:
             item[0] = t
         print()
 
-    def load(self, DATA_DIR):
-        sfiles, efiles = self.loadfiles(DATA_DIR)
-        etext_label = self.gen_text_label(efiles, 1, multiple=1)
-        stext_label = self.gen_text_label(sfiles, 0, multiple=1)
+    def load(self, DATA_DIR, numchar=3000, toid=6000):
+        sfiles, efiles = self.loadfiles(DATA_DIR, toid=toid)
+        etext_label = self.gen_text_label(efiles, 1, numchar=numchar, multiple=1)
+        stext_label = self.gen_text_label(sfiles, 0, numchar=numchar, multiple=1)
         self.stored_data = stext_label + etext_label
 
-    def getdata(self, DATA_DIR, TEST_ERRORNUM=10, SUCCESS_LOG_RATIO=99, SUCCESS_LOG_RATIO_TEST=12.4, force_reload=False):
+    def getdata(self, DATA_DIR, TEST_ERRORNUM=10, SUCCESS_LOG_RATIO=99, SUCCESS_LOG_RATIO_TEST=12.4, force_reload=False, numchar=3000, toid=6000):
         if len(self.stored_data) == 0 or force_reload:
-            self.load(DATA_DIR)
+            self.load(DATA_DIR, numchar=numchar, toid=toid)
 
         np.random.shuffle(self.stored_data)
         nb_test_success = int(TEST_ERRORNUM * SUCCESS_LOG_RATIO_TEST)

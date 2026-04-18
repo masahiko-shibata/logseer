@@ -8,7 +8,7 @@ Large enterprise systems — ERP platforms, middleware, batch processing infrast
 
 LogSeer collects logs from all relevant servers, reads the current system state, and predicts whether a planned operation will succeed or fail — **before it is initiated**. If failure is predicted, a preventive action can be taken before the operation starts — such as holding the operation, rescheduling, or restarting the system — avoiding the costly failure entirely.
 
-It is designed to generalize to any system and any operation type. JD Edwards (JDE) EnterpriseOne serves as the primary implementation and validation environment.
+It is designed to generalize to any system and any operation type. Oracle JD Edwards (JDE) EnterpriseOne serves as the primary implementation and validation environment.
 
 ## Problem
 
@@ -51,7 +51,7 @@ The pipeline includes:
 
 ## JDE Reference Implementation
 
-The current implementation and training data are based on JD Edwards EnterpriseOne, a large-scale ERP platform widely used in enterprise environments. This was validated in a large JDE development environment at the global headquarters — with hundreds of concurrent developers and QA engineers.
+The current implementation and training data are based on Oracle JD Edwards EnterpriseOne, a large-scale ERP platform widely used in enterprise environments. This was validated in a large JDE development environment at the global headquarters — with hundreds of concurrent developers and QA engineers.
 
 - Package deployments happen multiple times per day
 - A failed deployment times out after ~30 minutes, forcing all users offline

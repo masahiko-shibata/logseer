@@ -151,4 +151,10 @@ numpy
 
 ## Status
 
-Work in progress. The core architecture is stable and the JDE reference implementation produces statistically significant results.
+The core modeling approach and evaluation methodology are complete and validated.
+
+- Validated in a real enterprise environment using production logs
+- Predictions evaluated against actual outcomes in shadow mode
+- Architecture and results are stable across repeated evaluation
+
+The repository focuses on the prediction layer. Integration with live systems (log collection, orchestration, automated decision-making) is environment-specific and handled separately.

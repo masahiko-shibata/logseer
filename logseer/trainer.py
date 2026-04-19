@@ -92,7 +92,7 @@ def train_nn(model_name, embedding_layer, train_data, train_labels, val_data, va
                                               max_loss=max_loss,
                                               start_from_epoch=start_from_epoch)
 
-    callbacks = [checkpoint_cb, F1Logger()]
+callbacks = [F1Logger(val_data, val_labels), checkpoint_cb]
 
     # Optional early stopping
     if use_early_stopping and patience is not None:

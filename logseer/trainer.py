@@ -53,7 +53,7 @@ def prepare_sequences(tokenizer, train_texts, val_texts, test_texts, max_sequenc
 def train_nn(model_name, embedding_layer, train_data, train_labels, val_data, val_labels,
              test_data, test_labels, tester, *,
              model_save_path, epochs, batch_size, learning_rate, max_loss, retrain=False,
-             checkpoint_type='multi_metric', start_from_epoch=0,
+             checkpoint_type='multi_metric', start_from_epoch=0, es_start_from_epoch=0,
              use_early_stopping=False, patience=None, monitor='val_recall', mode='max',
              restore_best_weights=False, error_weight=1):
     train_labels = np.array(train_labels, dtype=np.int32)
@@ -98,6 +98,7 @@ def train_nn(model_name, embedding_layer, train_data, train_labels, val_data, va
     if use_early_stopping and patience is not None:
         callbacks.append(keras.callbacks.EarlyStopping(
             monitor=monitor, mode=mode, patience=patience,
+            start_from_epoch=es_start_from_epoch,
             restore_best_weights=restore_best_weights, verbose=1))
 
     model.fit(train_data, train_labels,
@@ -213,6 +214,7 @@ def run_training(
     toid=6000,
     checkpoint_type='multi_metric',
     start_from_epoch=0,
+    es_start_from_epoch=0,
     use_early_stopping=False,
     patience=None,
     monitor='val_recall',
@@ -271,6 +273,7 @@ def run_training(
                 model_save_path=model_save_path, epochs=epochs, batch_size=batch_size,
                 learning_rate=learning_rate, max_loss=max_loss, retrain=retrain,
                 checkpoint_type=checkpoint_type, start_from_epoch=start_from_epoch,
+                es_start_from_epoch=es_start_from_epoch,
                 use_early_stopping=use_early_stopping, patience=patience,
                 monitor=monitor, mode=mode,
                 restore_best_weights=restore_best_weights,

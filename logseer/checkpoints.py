@@ -1,6 +1,28 @@
 import keras
 
 
+class F1Score(keras.metrics.Metric):
+    """Computes F1 from precision and recall so val_f1 is available for EarlyStopping."""
+
+    def __init__(self, name='f1', **kwargs):
+        super().__init__(name=name, **kwargs)
+        self._precision = keras.metrics.Precision()
+        self._recall = keras.metrics.Recall()
+
+    def update_state(self, y_true, y_pred, sample_weight=None):
+        self._precision.update_state(y_true, y_pred, sample_weight)
+        self._recall.update_state(y_true, y_pred, sample_weight)
+
+    def result(self):
+        p = self._precision.result()
+        r = self._recall.result()
+        return 2 * p * r / (p + r + 1e-7)
+
+    def reset_state(self):
+        self._precision.reset_state()
+        self._recall.reset_state()
+
+
 class MultiMetricCheckpoint(keras.callbacks.Callback):
     """Recall-gated checkpoint: saves only when val_recall >= best_recall.
     Within a recall tier, also saves on precision or loss improvement.
@@ -59,13 +81,15 @@ class MultiMetricCheckpoint(keras.callbacks.Callback):
 
 
 class BestF1Checkpoint(keras.callbacks.Callback):
-    """Saves model when val F1 (computed from precision and recall) improves."""
+    """Saves model when val F1 improves. Optionally stops training after `patience` epochs without improvement."""
 
-    def __init__(self, filepath, start_from_epoch=0):
+    def __init__(self, filepath, start_from_epoch=0, patience=None):
         super().__init__()
         self.filepath = filepath
         self.start_from_epoch = start_from_epoch
+        self.patience = patience
         self.best_f1 = 0.0
+        self._wait = 0
 
     def on_epoch_end(self, epoch, logs=None):
         if epoch < self.start_from_epoch:
@@ -81,5 +105,12 @@ class BestF1Checkpoint(keras.callbacks.Callback):
         if f1 > self.best_f1:
             self.model.save(self.filepath)
             self.best_f1 = f1
+            self._wait = 0
             print()
             print(f'val_f1 improved to {f1:.4f} (p={p:.3f}, r={r:.3f}), saved')
+        else:
+            if self.patience is not None:
+                self._wait += 1
+                if self._wait >= self.patience:
+                    print(f'\nEarly stopping: no val_f1 improvement for {self.patience} epochs.')
+                    self.model.stop_training = True

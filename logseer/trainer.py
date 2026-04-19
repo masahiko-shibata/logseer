@@ -11,7 +11,7 @@ from sklearn import svm
 from sklearn.ensemble import RandomForestClassifier
 
 from .models import getModel, getEmbeddingLayer
-from .checkpoints import MultiMetricCheckpoint, BestF1Checkpoint
+from .checkpoints import MultiMetricCheckpoint, BestF1Checkpoint, F1Score
 from .loader import Loader
 from .tester import Tester
 
@@ -76,7 +76,8 @@ def train_nn(model_name, embedding_layer, train_data, train_labels, val_data, va
     model.compile(loss='binary_crossentropy',
                   optimizer=optimizer,
                   metrics=[keras.metrics.Precision(name='precision'),
-                           keras.metrics.Recall(name='recall')])
+                           keras.metrics.Recall(name='recall'),
+                           F1Score(name='f1')])
 
     # Build checkpoint callback
     if checkpoint_type == 'best_f1':

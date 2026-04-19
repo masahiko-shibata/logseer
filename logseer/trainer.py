@@ -11,7 +11,7 @@ from sklearn import svm
 from sklearn.ensemble import RandomForestClassifier
 
 from .models import getModel, getEmbeddingLayer
-from .checkpoints import MultiMetricCheckpoint, BestF1Checkpoint, F1Logger
+from .checkpoints import MultiMetricCheckpoint, BestF1Checkpoint
 from .loader import Loader
 from .tester import Tester
 
@@ -92,7 +92,7 @@ def train_nn(model_name, embedding_layer, train_data, train_labels, val_data, va
                                               max_loss=max_loss,
                                               start_from_epoch=start_from_epoch)
 
-callbacks = [F1Logger(val_data, val_labels), checkpoint_cb]
+    callbacks = [checkpoint_cb]
 
     # Optional early stopping
     if use_early_stopping and patience is not None:

@@ -1,17 +1,6 @@
 import keras
 
 
-class F1Logger(keras.callbacks.Callback):
-    """Injects val_f1 (and f1) into logs so EarlyStopping and checkpoints can monitor it."""
-
-    def on_epoch_end(self, epoch, logs=None):
-        if logs is None:
-            return
-        for prefix in ('', 'val_'):
-            p = logs.get(f'{prefix}precision', 0.0)
-            r = logs.get(f'{prefix}recall', 0.0)
-            logs[f'{prefix}f1'] = 2 * p * r / (p + r + 1e-7)
-
 
 class MultiMetricCheckpoint(keras.callbacks.Callback):
     """Recall-gated checkpoint: saves only when val_recall >= best_recall.

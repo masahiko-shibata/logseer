@@ -82,7 +82,8 @@ def train_nn(model_name, embedding_layer, train_data, train_labels, val_data, va
     # Build checkpoint callback
     if checkpoint_type == 'best_f1':
         checkpoint_cb = BestF1Checkpoint(filepath=model_save_path,
-                                         start_from_epoch=start_from_epoch)
+                                         start_from_epoch=start_from_epoch,
+                                         max_loss=max_loss)
     elif checkpoint_type == 'standard':
         checkpoint_cb = keras.callbacks.ModelCheckpoint(
             filepath=model_save_path, monitor=monitor, mode=mode,

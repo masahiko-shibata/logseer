@@ -70,13 +70,14 @@ class MultiMetricCheckpoint(keras.callbacks.Callback):
 
 
 class BestF1Checkpoint(keras.callbacks.Callback):
-    """Saves model when val F1 improves. Optionally stops training after `patience` epochs without improvement."""
+    """Saves model when val F1 improves, gated by max_loss to avoid saving noisy high-loss epochs."""
 
-    def __init__(self, filepath, start_from_epoch=0, patience=None):
+    def __init__(self, filepath, start_from_epoch=0, patience=None, max_loss=float('inf')):
         super().__init__()
         self.filepath = filepath
         self.start_from_epoch = start_from_epoch
         self.patience = patience
+        self.max_loss = max_loss
         self.best_f1 = 0.0
         self._wait = 0
 
@@ -86,6 +87,10 @@ class BestF1Checkpoint(keras.callbacks.Callback):
 
         if epoch == self.start_from_epoch:
             self.model.save(self.filepath)
+            return
+
+        val_loss = logs.get('val_loss', float('inf'))
+        if val_loss > self.max_loss:
             return
 
         p  = logs.get('val_precision', 0.0)

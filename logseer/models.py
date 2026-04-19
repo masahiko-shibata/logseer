@@ -7,6 +7,7 @@ from keras.models import Sequential
 from keras import regularizers
 
 
+@keras.saving.register_keras_serializable()
 class SelfAttention(keras.layers.Layer):
     """Multi-head self-attention with post-attention layer normalization.
     Placed after conv layers so attention operates on extracted features.

@@ -1,27 +1,6 @@
 import keras
 
 
-class F1Score(keras.metrics.Metric):
-    """Computes F1 from precision and recall so val_f1 is available for EarlyStopping."""
-
-    def __init__(self, name='f1', **kwargs):
-        super().__init__(name=name, **kwargs)
-        self._precision = keras.metrics.Precision()
-        self._recall = keras.metrics.Recall()
-
-    def update_state(self, y_true, y_pred, sample_weight=None):
-        self._precision.update_state(y_true, y_pred, sample_weight)
-        self._recall.update_state(y_true, y_pred, sample_weight)
-
-    def result(self):
-        p = self._precision.result()
-        r = self._recall.result()
-        return 2 * p * r / (p + r + 1e-7)
-
-    def reset_state(self):
-        self._precision.reset_state()
-        self._recall.reset_state()
-
 
 class MultiMetricCheckpoint(keras.callbacks.Callback):
     """Recall-gated checkpoint: saves only when val_recall >= best_recall.

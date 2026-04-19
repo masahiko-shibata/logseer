@@ -48,23 +48,18 @@ def getEmbeddingLayer(name, MAX_NB_WORDS, EMBEDDING_DIM, MAX_SEQUENCE_LENGTH, wo
                      trainable=False)
 
 
+_models = {}
+
+
+def addModel(name, model_fn):
+    """Register a model factory by name. model_fn(embedding_layer) -> keras.Model."""
+    _models[name] = model_fn
+
+
 def getModel(model_name, embedding_layer=None, MAX_SEQUENCE_LENGTH=25000, EMBEDDING_DIM=300):
-    models = {
-        'simple':           lambda: simpleNN(MAX_SEQUENCE_LENGTH),
-        'conv':             lambda: convNet(embedding_layer),
-        'vgg':              lambda: vgglite(embedding_layer),
-        'LogCNN':           lambda: LogCNN(embedding_layer),
-        'LogCNNLite':       lambda: LogCNNLite(embedding_layer),
-        'LogCNNattn':       lambda: LogCNNattn(embedding_layer),
-        'LogCNNattnWork':   lambda: LogCNNattnWork(embedding_layer),
-        'LSTM':             lambda: LSTMModel(embedding_layer),
-        'biLSTM':           lambda: biLSTMModel(embedding_layer),
-        'biGRU':            lambda: biGRU(embedding_layer),
-        'GRU':              lambda: plainGRU(embedding_layer),
-    }
-    if model_name not in models:
-        raise ValueError(f'Unknown model: {model_name}. Options: {list(models.keys())}')
-    return models[model_name]()
+    if model_name not in _models:
+        raise ValueError(f'Unknown model: {model_name}. Options: {list(_models.keys())}')
+    return _models[model_name](embedding_layer)
 
 
 def convNet(embedding_layer):
@@ -246,3 +241,15 @@ def LogCNNattnWork(embedding_layer):
     model.add(Dense(128, activation='elu'))
     model.add(Dense(1, activation='sigmoid'))
     return model
+
+
+addModel('conv',           convNet)
+addModel('vgg',            vgglite)
+addModel('LogCNN',         LogCNN)
+addModel('LogCNNLite',     LogCNNLite)
+addModel('LogCNNattn',     LogCNNattn)
+addModel('LogCNNattnWork', LogCNNattnWork)
+addModel('LSTM',           LSTMModel)
+addModel('biLSTM',         biLSTMModel)
+addModel('biGRU',          biGRU)
+addModel('GRU',            plainGRU)

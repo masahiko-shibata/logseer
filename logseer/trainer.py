@@ -55,7 +55,7 @@ def train_nn(model_name, embedding_layer, train_data, train_labels, val_data, va
              model_save_path, epochs, batch_size, learning_rate, max_loss, retrain=False,
              checkpoint_type='multi_metric', start_from_epoch=0,
              use_early_stopping=False, patience=None, monitor='val_recall', mode='max',
-             restore_best_weights=False, error_weight=1, model=None):
+             restore_best_weights=False, error_weight=1):
     train_labels = np.array(train_labels, dtype=np.int32)
     val_labels   = np.array(val_labels,   dtype=np.int32)
 
@@ -67,11 +67,10 @@ def train_nn(model_name, embedding_layer, train_data, train_labels, val_data, va
     print('Number of validation data sets: %s' % len(val_labels))
     print('Number of errors in validation data: %s' % nb_val_error)
 
-    if model is None:
-        if retrain:
-            model = load_model(model_save_path)
-        else:
-            model = getModel(model_name, embedding_layer)
+    if retrain:
+        model = load_model(model_save_path)
+    else:
+        model = getModel(model_name, embedding_layer)
 
     optimizer = optimizers.Adam(learning_rate=learning_rate, beta_1=0.9, beta_2=0.999)
     model.compile(loss='binary_crossentropy',
@@ -225,7 +224,6 @@ def run_training(
     test_rf=False,
     success_log_ratio=99,
     success_log_ratio_test=12.4,
-    model=None,
 ):
     """Run the full training loop and return the Tester instance.
 
@@ -277,7 +275,6 @@ def run_training(
                 monitor=monitor, mode=mode,
                 restore_best_weights=restore_best_weights,
                 error_weight=nn_error_weight,
-                model=model,
             )
             if not ok:
                 continue

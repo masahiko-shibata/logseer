@@ -143,7 +143,7 @@ def LogCNNLite(embedding_layer):
     return model
 
 
-def LogCNNattn(embedding_layer):
+def LogCNNAttn(embedding_layer):
     """Dilated CNN with self-attention after conv layers."""
     dr, ks = 2, 3
     model = Sequential(name='LogCNNattn')
@@ -223,34 +223,11 @@ def plainGRU(embedding_layer):
     model.add(Dense(1, activation='sigmoid'))
     return model
 
-def LogCNNattnWork(embedding_layer):
-    """Dilated CNN with self-attention after conv layers."""
-    dr, ks = 2, 3
-    model = Sequential(name='LogCNNattnWork')
-    model.add(embedding_layer)
-    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(Conv1D(filters=64, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(Conv1D(filters=64, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(Conv1D(filters=64, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(Conv1D(filters=128, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(Conv1D(filters=128, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(Conv1D(filters=64, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(Conv1D(filters=64, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(SelfAttention(num_heads=4, key_dim=32))
-    model.add(GlobalAveragePooling1D())
-    model.add(Dense(128, activation='elu'))
-    model.add(Dense(1, activation='sigmoid'))
-    return model
-
-
 addModel('conv',           convNet)
 addModel('vgg',            vgglite)
 addModel('LogCNN',         LogCNN)
 addModel('LogCNNLite',     LogCNNLite)
-addModel('LogCNNattn',     LogCNNattn)
-addModel('LogCNNattnWork', LogCNNattnWork)
+addModel('LogCNNAttn',     LogCNNAttn)
 addModel('LSTM',           LSTMModel)
 addModel('biLSTM',         biLSTMModel)
 addModel('biGRU',          biGRU)

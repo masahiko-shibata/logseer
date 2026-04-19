@@ -1,4 +1,33 @@
 import keras
+import keras.ops as ops
+
+
+class F1Score(keras.metrics.Metric):
+    """Custom F1 metric so val_f1 appears in the progress bar and is available for EarlyStopping."""
+
+    def __init__(self, name='f1', threshold=0.5, **kwargs):
+        super().__init__(name=name, **kwargs)
+        self.threshold = threshold
+        self.tp = self.add_weight(name='tp', initializer='zeros')
+        self.fp = self.add_weight(name='fp', initializer='zeros')
+        self.fn = self.add_weight(name='fn', initializer='zeros')
+
+    def update_state(self, y_true, y_pred, sample_weight=None):
+        y_pred = ops.cast(y_pred >= self.threshold, 'float32')
+        y_true = ops.cast(y_true, 'float32')
+        self.tp.assign_add(ops.sum(y_true * y_pred))
+        self.fp.assign_add(ops.sum((1 - y_true) * y_pred))
+        self.fn.assign_add(ops.sum(y_true * (1 - y_pred)))
+
+    def result(self):
+        p = self.tp / (self.tp + self.fp + 1e-7)
+        r = self.tp / (self.tp + self.fn + 1e-7)
+        return 2 * p * r / (p + r + 1e-7)
+
+    def reset_state(self):
+        self.tp.assign(0.0)
+        self.fp.assign(0.0)
+        self.fn.assign(0.0)
 
 
 class F1Logger(keras.callbacks.Callback):

@@ -120,7 +120,7 @@ class Loader:
         stext_label = self.gen_text_label(sfiles, 0, numchar=numchar, multiple=1)
         self.stored_data = stext_label + etext_label
 
-    def getdata(self, DATA_DIR, TEST_ERRORNUM=10, SUCCESS_LOG_RATIO=99, SUCCESS_LOG_RATIO_TEST=12.4,
+    def getdata(self, DATA_DIR, TEST_ERRORNUM=10, SUCCESS_LOG_RATIO=99, SUCCESS_LOG_RATIO_TEST=doe,
                 force_reload=False, numchar=3000, toid=6000):
         if len(self.stored_data) == 0 or force_reload:
             self.load(DATA_DIR, numchar=numchar, toid=toid)

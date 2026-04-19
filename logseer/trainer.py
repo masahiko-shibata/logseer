@@ -85,7 +85,7 @@ def train_nn(model_name, embedding_layer, train_data, train_labels, val_data, va
     elif checkpoint_type == 'standard':
         checkpoint_cb = keras.callbacks.ModelCheckpoint(
             filepath=model_save_path, monitor=monitor, mode=mode,
-            save_best_only=True, restore_best_weights=restore_best_weights,
+            save_best_only=True,
             verbose=1)
     else:  # 'multi_metric' (default)
         checkpoint_cb = MultiMetricCheckpoint(filepath=model_save_path,

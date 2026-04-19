@@ -1,26 +1,18 @@
 import keras
 
 
-class F1Score(keras.metrics.Metric):
-    """F1 metric for binary classification with 1D labels."""
+@keras.saving.register_keras_serializable()
 
-    def __init__(self, name='f1', **kwargs):
-        super().__init__(name=name, **kwargs)
-        self._precision = keras.metrics.Precision()
-        self._recall = keras.metrics.Recall()
+class F1Logger(keras.callbacks.Callback):
+    """Injects val_f1 into logs before EarlyStopping reads it."""
 
-    def update_state(self, y_true, y_pred, sample_weight=None):
-        self._precision.update_state(y_true, y_pred, sample_weight)
-        self._recall.update_state(y_true, y_pred, sample_weight)
-
-    def result(self):
-        p = self._precision.result()
-        r = self._recall.result()
-        return 2 * p * r / (p + r + 1e-7)
-
-    def reset_state(self):
-        self._precision.reset_state()
-        self._recall.reset_state()
+    def on_epoch_end(self, epoch, logs=None):
+        if logs is None:
+            return
+        for prefix in ('', 'val_'):
+            p = logs.get(f'{prefix}precision', 0.0)
+            r = logs.get(f'{prefix}recall', 0.0)
+            logs[f'{prefix}f1'] = 2 * p * r / (p + r + 1e-7)
 
 
 class MultiMetricCheckpoint(keras.callbacks.Callback):

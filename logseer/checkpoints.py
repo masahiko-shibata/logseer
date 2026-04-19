@@ -1,9 +1,16 @@
 import keras
 
 
-def F1Score(name='f1', threshold=0.5):
-    """Returns a Keras F1Score metric. Uses the built-in keras.metrics.F1Score."""
-    return keras.metrics.F1Score(name=name, threshold=threshold)
+class F1Logger(keras.callbacks.Callback):
+    """Injects val_f1 (and f1) into logs so EarlyStopping and checkpoints can monitor it."""
+
+    def on_epoch_end(self, epoch, logs=None):
+        if logs is None:
+            return
+        for prefix in ('', 'val_'):
+            p = logs.get(f'{prefix}precision', 0.0)
+            r = logs.get(f'{prefix}recall', 0.0)
+            logs[f'{prefix}f1'] = 2 * p * r / (p + r + 1e-7)
 
 
 class MultiMetricCheckpoint(keras.callbacks.Callback):
@@ -39,7 +46,6 @@ class MultiMetricCheckpoint(keras.callbacks.Callback):
         if val_recall > self.best_recall and val_loss < self.max_loss:
             self.model.save(self.filepath)
             self.best_recall = val_recall
-            self.best_precision = val_precision
             self.best_loss = val_loss
             print()
             print(f'val_recall improved. val_recall:{val_recall:.4f}, saved')

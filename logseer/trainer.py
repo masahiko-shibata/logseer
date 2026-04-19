@@ -55,7 +55,7 @@ def train_nn(model_name, embedding_layer, train_data, train_labels, val_data, va
              model_save_path, epochs, batch_size, learning_rate, max_loss, retrain=False,
              checkpoint_type='multi_metric', start_from_epoch=0,
              use_early_stopping=False, patience=None, monitor='val_recall', mode='max',
-             restore_best_weights=False):
+             restore_best_weights=False, error_weight=1):
     train_labels = np.array(train_labels, dtype=np.int32)
     val_labels   = np.array(val_labels,   dtype=np.int32)
 
@@ -105,7 +105,8 @@ def train_nn(model_name, embedding_layer, train_data, train_labels, val_data, va
               epochs=epochs,
               verbose=1,
               batch_size=batch_size,
-              callbacks=callbacks)
+              callbacks=callbacks,
+              class_weight={0: 1, 1: error_weight} if error_weight != 1 else None)
 
     model = load_model(model_save_path)
     tester.testModel(model, test_data, test_labels, threshold=0.5)
@@ -204,6 +205,7 @@ def run_training(
     model_name='LogCNNLite',
     repetition=100,
     error_weight=5,
+    nn_error_weight=1,
     learning_rate=0.0003,
     max_loss=0.7,
     retrain=False,
@@ -272,6 +274,7 @@ def run_training(
                 use_early_stopping=use_early_stopping, patience=patience,
                 monitor=monitor, mode=mode,
                 restore_best_weights=restore_best_weights,
+                error_weight=nn_error_weight,
             )
             if not ok:
                 continue

@@ -50,16 +50,17 @@ def getEmbeddingLayer(name, MAX_NB_WORDS, EMBEDDING_DIM, MAX_SEQUENCE_LENGTH, wo
 
 def getModel(model_name, embedding_layer=None, MAX_SEQUENCE_LENGTH=25000, EMBEDDING_DIM=300):
     models = {
-        'simple':      lambda: simpleNN(MAX_SEQUENCE_LENGTH),
-        'conv':        lambda: convNet(embedding_layer),
-        'vgg':         lambda: vgglite(embedding_layer),
-        'LogCNN':      lambda: LogCNN(embedding_layer),
-        'LogCNNLite':  lambda: LogCNNLite(embedding_layer),
-        'LogCNNattn':  lambda: LogCNNattn(embedding_layer),
-        'LSTM':        lambda: LSTMModel(embedding_layer),
-        'biLSTM':      lambda: biLSTMModel(embedding_layer),
-        'biGRU':       lambda: biGRU(embedding_layer),
-        'GRU':         lambda: plainGRU(embedding_layer),
+        'simple':           lambda: simpleNN(MAX_SEQUENCE_LENGTH),
+        'conv':             lambda: convNet(embedding_layer),
+        'vgg':              lambda: vgglite(embedding_layer),
+        'LogCNN':           lambda: LogCNN(embedding_layer),
+        'LogCNNLite':       lambda: LogCNNLite(embedding_layer),
+        'LogCNNattn':       lambda: LogCNNattn(embedding_layer),
+        'LogCNNattnWork':   lambda: LogCNNattnWork(embedding_layer),
+        'LSTM':             lambda: LSTMModel(embedding_layer),
+        'biLSTM':           lambda: biLSTMModel(embedding_layer),
+        'biGRU':            lambda: biGRU(embedding_layer),
+        'GRU':              lambda: plainGRU(embedding_layer),
     }
     if model_name not in models:
         raise ValueError(f'Unknown model: {model_name}. Options: {list(models.keys())}')
@@ -218,5 +219,30 @@ def plainGRU(embedding_layer):
     model.add(GRU(64, dropout=0.2, recurrent_dropout=0.2))
     model.add(Dense(128, activation='relu'))
     model.add(Dropout(0.5))
+    model.add(Dense(1, activation='sigmoid'))
+    return model
+
+def LogCNNattnWork(embedding_layer):
+    """Dilated CNN with self-attention after conv layers."""
+    dr, ks = 2, 3
+    model = Sequential(name='LogCNNattnWork')
+    model.add(embedding_layer)
+    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
+    model.add(Conv1D(filters=64, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
+    model.add(MaxPooling1D(pool_size=5))
+    model.add(Conv1D(filters=64, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
+    model.add(Conv1D(filters=64, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
+    model.add(MaxPooling1D(pool_size=5))
+    model.add(Conv1D(filters=128, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same', kernel_regularizer=regularizers.l2(0.001)))
+    model.add(Conv1D(filters=128, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same', kernel_regularizer=regularizers.l2(0.001)))
+    model.add(MaxPooling1D(pool_size=5))
+    model.add(Conv1D(filters=64, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same', kernel_regularizer=regularizers.l2(0.001)))
+    model.add(Conv1D(filters=64, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same', kernel_regularizer=regularizers.l2(0.001)))
+    model.add(MaxPooling1D(pool_size=5))
+    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same', kernel_regularizer=regularizers.l2(0.001)))
+    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same', kernel_regularizer=regularizers.l2(0.001)))
+    model.add(SelfAttention(num_heads=4, key_dim=32))
+    model.add(GlobalAveragePooling1D())
+    model.add(Dense(128, activation='elu'))
     model.add(Dense(1, activation='sigmoid'))
     return model

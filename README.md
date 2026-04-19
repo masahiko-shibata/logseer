@@ -65,9 +65,9 @@ Evaluated on the JDE reference environment over 100 repeated random train/test s
 
 | Model | Precision | Recall | F1 |
 |---|---|---|---|
-| LogCNNLite | 0.417 | 0.340 | 0.375 |
-| XGBoost | 0.643 | 0.257 | 0.367 |
-| Ensemble (CNN \| XGB) | 0.426 | 0.397 | 0.411 |
+| LogCNNLite | 0.428 | 0.317 | 0.364 |
+| XGBoost | 0.584 | 0.292 | 0.389 |
+| Ensemble (CNN \| XGB) | 0.432 | 0.405 | 0.418 |
 
 ## Project Structure
 

@@ -203,7 +203,7 @@ def run_training(
     embedding_layer_type='vanilla',
     model_name='LogCNNLite',
     repetition=100,
-    error_weight=2,
+    error_weight=5,
     learning_rate=0.0003,
     max_loss=0.7,
     retrain=False,

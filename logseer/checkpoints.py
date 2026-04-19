@@ -1,8 +1,6 @@
 import keras
 
 
-@keras.saving.register_keras_serializable()
-
 class F1Logger(keras.callbacks.Callback):
     """Injects val_f1 into logs before EarlyStopping reads it."""
 

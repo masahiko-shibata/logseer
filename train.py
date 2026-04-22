@@ -9,12 +9,38 @@ from logseer import run_training
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Train LogSeer models')
+    parser = argparse.ArgumentParser(
+        description='Train LogSeer models',
+        epilog='Any config key can be overridden as key=value, e.g. epochs=10 max_nb_words=100',
+    )
     parser.add_argument('--config', default='config.yaml', help='Path to config YAML file')
+    parser.add_argument('overrides', nargs='*', help='key=value overrides for config')
     args = parser.parse_args()
 
     with open(args.config) as f:
         cfg = yaml.safe_load(f)
+
+    for override in args.overrides:
+        if '=' not in override:
+            print(f'Warning: ignoring malformed override {override!r} (expected key=value)')
+            continue
+        key, _, raw_value = override.partition('=')
+        # preserve type: try int, float, bool, then leave as string
+        for cast in (int, float):
+            try:
+                value = cast(raw_value)
+                break
+            except ValueError:
+                pass
+        else:
+            if raw_value.lower() in ('true', 'yes'):
+                value = True
+            elif raw_value.lower() in ('false', 'no'):
+                value = False
+            else:
+                value = raw_value
+        cfg[key] = value
+        print(f'Override: {key} = {value!r}')
 
     run_training(
         cfg['data_dir'],

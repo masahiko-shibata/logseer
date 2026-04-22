@@ -155,12 +155,16 @@ def print_ensemble(tester, write_log=False):
     cnn_tp       = np.sum(errors & (cnn  == 1))
     xgb_tp       = np.sum(errors & (xgb_ == 1))
     both_tp      = np.sum(errors & (cnn  == 1) & (xgb_ == 1))
+    both_fp      = np.sum(~errors & (cnn  == 1) & (xgb_ == 1))
     either_tp    = np.sum(errors & ((cnn == 1) | (xgb_ == 1)))
     either_fp    = np.sum(~errors & ((cnn == 1) | (xgb_ == 1)))
     total_errors = np.sum(errors)
-    ens_p  = either_tp / (either_tp + either_fp) if (either_tp + either_fp) > 0 else 0.0
-    ens_r  = either_tp / total_errors if total_errors > 0 else 0.0
-    ens_f1 = 2 * ens_p * ens_r / (ens_p + ens_r) if (ens_p + ens_r) > 0 else 0.0
+    or_p  = either_tp / (either_tp + either_fp) if (either_tp + either_fp) > 0 else 0.0
+    or_r  = either_tp / total_errors if total_errors > 0 else 0.0
+    or_f1 = 2 * or_p * or_r / (or_p + or_r) if (or_p + or_r) > 0 else 0.0
+    and_p  = both_tp / (both_tp + both_fp) if (both_tp + both_fp) > 0 else 0.0
+    and_r  = both_tp / total_errors if total_errors > 0 else 0.0
+    and_f1 = 2 * and_p * and_r / (and_p + and_r) if (and_p + and_r) > 0 else 0.0
     print()
     print('### Ensemble (CNN | XGB) ###')
     print()
@@ -172,13 +176,15 @@ def print_ensemble(tester, write_log=False):
     print(f'  XGB-only TP    : {xgb_tp - both_tp}')
     print(f'  Union TP       : {either_tp}')
     print(f'  Union FP       : {either_fp}')
-    print(f'  Ensemble       : precision {ens_p:.3f}  recall {ens_r:.3f}  F1 {ens_f1:.3f}')
+    print(f'  OR  ensemble   : precision {or_p:.3f}  recall {or_r:.3f}  F1 {or_f1:.3f}')
+    print(f'  AND ensemble   : precision {and_p:.3f}  recall {and_r:.3f}  F1 {and_f1:.3f}  (TP={both_tp}  FP={both_fp})')
 
     if write_log:
         with open('ensemble.log', 'a', encoding='utf-8') as f:
             f.write(f'{either_tp}\t{either_fp}\t{total_errors - either_tp}\t{total_errors}\n')
         with open('result.txt', 'a', encoding='utf-8') as f:
-            f.write(f'Ensemble\t{ens_p:.6f}\t{ens_r:.6f}\t{ens_f1:.6f}\t{total_errors}\t{either_tp}\t{either_fp}\n')
+            f.write(f'EnsembleOR\t{or_p:.6f}\t{or_r:.6f}\t{or_f1:.6f}\t{total_errors}\t{either_tp}\t{either_fp}\n')
+            f.write(f'EnsembleAND\t{and_p:.6f}\t{and_r:.6f}\t{and_f1:.6f}\t{total_errors}\t{both_tp}\t{both_fp}\n')
 
 
 def significance_test(tester):

@@ -1,8 +1,8 @@
 import numpy as np
 import keras
 from keras.layers import (Conv1D, MaxPooling1D, AveragePooling1D,GlobalAveragePooling1D,
-                          Dense, Dropout, Flatten, LSTM, Bidirectional,
-                          Embedding, GRU, MultiHeadAttention, LayerNormalization)
+                          GlobalMaxPooling1D, Dense, Dropout, Flatten, LSTM, Bidirectional,
+                          Embedding, GRU, MultiHeadAttention, LayerNormalization, BatchNormalization)
 from keras.models import Sequential
 from keras import regularizers
 
@@ -219,25 +219,38 @@ def plainGRU(embedding_layer):
     return model
 
 def NNWork(embedding_layer):
-    dr, ks = 2, 3
+
     model = Sequential(name='NNWork')
     model.add(embedding_layer)
-    model.add(Conv1D(filters=16, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(MaxPooling1D(pool_size=5))
-    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(Conv1D(filters=64, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(MaxPooling1D(pool_size=5))
-    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(Conv1D(filters=64, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(MaxPooling1D(pool_size=5))
-    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(Conv1D(filters=64, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(MaxPooling1D(pool_size=5))
-    model.add(Conv1D(filters=16, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(GlobalAveragePooling1D())
-    model.add(Dense(64, activation='elu'))
+    model.add(embedding_layer)
+
+    # Block 1 - local patterns
+    model.add(Conv1D(filters=16, kernel_size=3, dilation_rate=1, activation='elu', padding='same'))
+    model.add(BatchNormalization())
+    model.add(Conv1D(filters=32, kernel_size=3, dilation_rate=2, activation='elu', padding='same'))
+    model.add(BatchNormalization())
+    model.add(Conv1D(filters=64, kernel_size=3, dilation_rate=4, activation='elu', padding='same'))
+    model.add(BatchNormalization())
+    model.add(MaxPooling1D(pool_size=5))  # now at 5200
+
+    # Block 2 - mid-range patterns
+    model.add(Conv1D(filters=64, kernel_size=3, dilation_rate=8, activation='elu', padding='same'))
+    model.add(BatchNormalization())
+    model.add(Conv1D(filters=128, kernel_size=3, dilation_rate=16, activation='elu', padding='same'))
+    model.add(BatchNormalization())
+    model.add(Conv1D(filters=128, kernel_size=3, dilation_rate=32, activation='elu', padding='same'))
+    model.add(BatchNormalization())
+    model.add(MaxPooling1D(pool_size=5))  # now at 1040
+
+    # Block 3 - long-range patterns
+    model.add(Conv1D(filters=128, kernel_size=3, dilation_rate=64, activation='elu', padding='same'))
+    model.add(BatchNormalization())
+    model.add(Conv1D(filters=128, kernel_size=3, dilation_rate=128, activation='elu', padding='same'))
+    model.add(BatchNormalization())
+    model.add(GlobalMaxPooling1D())
+
+    model.add(Dense(32, activation='relu'))
+    model.add(BatchNormalization())
     model.add(Dense(1, activation='sigmoid'))
     return model
 

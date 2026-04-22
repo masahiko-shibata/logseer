@@ -221,9 +221,8 @@ def plainGRU(embedding_layer):
 def NNWork(embedding_layer):
 
     model = Sequential(name='NNWork')
-    model.add(embedding_layer)
-    model.add(embedding_layer)
 
+    model.add(embedding_layer)
     # Block 1 - local patterns
     model.add(Conv1D(filters=16, kernel_size=3, dilation_rate=1, activation='elu', padding='same'))
     model.add(BatchNormalization())

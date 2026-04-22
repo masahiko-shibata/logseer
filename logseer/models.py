@@ -223,20 +223,18 @@ def NNWork(embedding_layer):
     dr, ks = 2, 3
     model = Sequential(name='NNWork')
     model.add(embedding_layer)
-    model.add(Conv1D(filters=15, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
+    model.add(Conv1D(filters=64, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
+    model.add(Conv1D(filters=128, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
     model.add(MaxPooling1D(pool_size=5))
-    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
+    model.add(Conv1D(filters=128, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
+    model.add(Conv1D(filters=128, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
     model.add(MaxPooling1D(pool_size=5))
-    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(MaxPooling1D(pool_size=5))
-    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(GlobalAveragePooling1D())
+    model.add(Conv1D(filters=64, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
+    model.add(Conv1D(filters=64, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
+    model.add(GlobalMaxPooling1D())
     model.add(Dense(64, activation='elu'))
     model.add(Dense(1, activation='sigmoid'))
+    return model
     return model
 
 addModel('conv',           convNet)

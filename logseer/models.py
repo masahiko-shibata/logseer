@@ -1,6 +1,6 @@
 import numpy as np
 import keras
-from keras.layers import (Conv1D, MaxPooling1D, GlobalAveragePooling1D,
+from keras.layers import (Conv1D, MaxPooling1D, AveragePooling1D,GlobalAveragePooling1D,
                           Dense, Dropout, Flatten, LSTM, Bidirectional,
                           Embedding, GRU, MultiHeadAttention, LayerNormalization)
 from keras.models import Sequential
@@ -148,23 +148,18 @@ def LogCNNAttn(embedding_layer):
     dr, ks = 2, 3
     model = Sequential(name='LogCNNattn')
     model.add(embedding_layer)
-    model.add(Conv1D(filters=128, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same', kernel_regularizer=regularizers.l2(0.001)))
-    model.add(Conv1D(filters=128, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same', kernel_regularizer=regularizers.l2(0.001)))
-    model.add(MaxPooling1D(pool_size=5))
-    model.add(Dropout(0.2))
-    model.add(Conv1D(filters=64, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same', kernel_regularizer=regularizers.l2(0.001)))
-    model.add(Conv1D(filters=64, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same', kernel_regularizer=regularizers.l2(0.001)))
-    model.add(MaxPooling1D(pool_size=5))
-    model.add(Dropout(0.2))
-    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same', kernel_regularizer=regularizers.l2(0.001)))
-    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same', kernel_regularizer=regularizers.l2(0.001)))
+    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
+    model.add(Conv1D(filters=64, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
+    model.add(AveragePooling1D(pool_size=5))
+    model.add(Conv1D(filters=64, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
+    model.add(Conv1D(filters=64, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
+    model.add(AveragePooling1D(pool_size=5))
+    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
+    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
+    model.add(AveragePooling1D(pool_size=5))
     model.add(SelfAttention(num_heads=4, key_dim=32))
     model.add(GlobalAveragePooling1D())
-    model.add(Dropout(0.5))
     model.add(Dense(128, activation='elu'))
-    model.add(Dropout(0.2))
-    model.add(Dense(128, activation='elu'))
-    model.add(Dropout(0.2))
     model.add(Dense(1, activation='sigmoid'))
     return model
 

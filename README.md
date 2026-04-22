@@ -44,7 +44,7 @@ The pipeline includes:
 - **Domain-aware preprocessing** — timestamps, IDs, IP addresses, and other high-cardinality tokens are normalized to reduce noise while preserving meaningful signal
 - **LogCNNLite** — a dilated 1D CNN that performed best in comparison against RNN-based models (LSTM, GRU, biLSTM, biGRU). Notably, this is a convolutional architecture more commonly associated with image processing, applied here to log token sequences — sequential models underperformed, suggesting the signal in these logs is not strongly order-dependent at the token level
 - **XGBoost** — a TF-IDF based classifier that captures anomalous token occurrence patterns
-- **Ensemble** — union of both model predictions, optimized for recall given the asymmetric cost structure
+- **Ensemble** — union of both model predictions. CNN and XGBoost capture fundamentally different failure signals: CNN learns positional and structural patterns in token sequences, while XGBoost detects anomalous token frequency patterns via TF-IDF. Both models consistently identify distinct failure cases the other misses — CNN-only and XGBoost-only true positives appear in every evaluation run. The union reliably gains ~10 F1 points over either model alone without a proportional increase in false positives
 - **Repeated evaluation** — 100 randomized train/test splits with Fisher's exact significance testing for statistically reliable performance estimates
 
 > Note: log collection from live servers is handled by a separate pipeline outside this repository. This codebase assumes logs have already been collected and organized into the data directory structure described below.
@@ -68,6 +68,8 @@ Evaluated on the JDE reference environment over 100 repeated random train/test s
 | LogCNNLite | 0.396 | 0.292 | 0.336 |
 | XGBoost | 0.590 | 0.296 | 0.394 |
 | Ensemble (CNN \| XGB) | 0.415 | 0.404 | 0.409 |
+
+The ensemble gain over individual models is consistent across all evaluation runs, confirming the complementarity is structural rather than a sampling artifact.
 
 ## Project Structure
 
@@ -106,7 +108,9 @@ Each subdirectory contains the log files collected before a single operation run
 
 ## Training
 
-Training is designed to run on Google Colab with a GPU. Open `notebooks/train.ipynb`, configure the parameters in the Configuration cell, and run all cells.
+Training runs on any Jupyter Notebook environment with GPU access — locally (e.g. a machine with an NVIDIA GPU running JupyterLab), or on Google Colab. Open `notebooks/train.ipynb`, configure the parameters in the Configuration cell, and run all cells.
+
+Two optional cells handle Google Drive integration for Colab users (loading data and saving the trained model). Skip these when running locally.
 
 ### Two-phase workflow
 

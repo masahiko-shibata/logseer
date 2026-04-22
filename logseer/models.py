@@ -5,7 +5,7 @@ from keras.layers import (Conv1D, MaxPooling1D, AveragePooling1D,GlobalAveragePo
                           Embedding, GRU, MultiHeadAttention, LayerNormalization, BatchNormalization)
 from keras.models import Sequential
 from keras import regularizers
-
+from tensorflow.keras.initializers import Constant
 
 @keras.saving.register_keras_serializable()
 class SelfAttention(keras.layers.Layer):
@@ -250,7 +250,8 @@ def NNWork(embedding_layer):
 
     model.add(Dense(32, activation='relu'))
     model.add(BatchNormalization())
-    model.add(Dense(1, activation='sigmoid'))
+    model.add(Dense(1, activation='sigmoid',
+                    bias_initializer=Constant(-2.2)))
     return model
 
 addModel('conv',           convNet)

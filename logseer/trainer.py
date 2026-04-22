@@ -142,7 +142,7 @@ def train_sklearn(tokenizer, train_texts, test_texts, train_labels, test_labels,
         tester.testModel(model, test_mat, test_labels)
 
 
-def print_ensemble(tester):
+def print_ensemble(tester, write_log=False):
     nn_row  = next((r for r in tester.stored if r[0] not in ('xgbModel', 'svmModel', 'rfModel')), None)
     xgb_row = next((r for r in tester.stored if r[0] == 'xgbModel'), None)
     if not (nn_row and xgb_row):
@@ -173,6 +173,12 @@ def print_ensemble(tester):
     print(f'  Union TP       : {either_tp}')
     print(f'  Union FP       : {either_fp}')
     print(f'  Ensemble       : precision {ens_p:.3f}  recall {ens_r:.3f}  F1 {ens_f1:.3f}')
+
+    if write_log:
+        with open('ensemble.log', 'a', encoding='utf-8') as f:
+            f.write(f'{either_tp}\t{either_fp}\t{total_errors - either_tp}\t{total_errors}\n')
+        with open('result.txt', 'a', encoding='utf-8') as f:
+            f.write(f'Ensemble\t{ens_p:.6f}\t{ens_r:.6f}\t{ens_f1:.6f}\t{total_errors}\t{either_tp}\t{either_fp}\n')
 
 
 def significance_test(tester):
@@ -293,6 +299,7 @@ def run_training(
         print_ensemble(tester)
 
     tester.total(heatmap=True)
+    print_ensemble(tester, write_log=True)
     significance_test(tester)
     return tester
 

@@ -218,6 +218,25 @@ def plainGRU(embedding_layer):
     model.add(Dense(1, activation='sigmoid'))
     return model
 
+def NNWork(embedding_layer):
+    dr, ks = 2, 3
+    model = Sequential(name='NNWork')
+    model.add(embedding_layer)
+    model.add(Conv1D(filters=16, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
+    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
+    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
+    model.add(MaxPooling1D(pool_size=5))
+    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
+    model.add(Conv1D(filters=64, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
+    model.add(Conv1D(filters=64, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
+    model.add(MaxPooling1D(pool_size=5))
+    model.add(Conv1D(filters=16, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
+    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
+    model.add(GlobalAveragePooling1D())
+    model.add(Dense(64, activation='elu'))
+    model.add(Dense(1, activation='sigmoid'))
+    return model
+
 addModel('conv',           convNet)
 addModel('vgg',            vgglite)
 addModel('LogCNN',         LogCNN)
@@ -227,3 +246,4 @@ addModel('LSTM',           LSTMModel)
 addModel('biLSTM',         biLSTMModel)
 addModel('biGRU',          biGRU)
 addModel('GRU',            plainGRU)
+addModel('NNWork',         NNWork)

@@ -148,9 +148,11 @@ def print_ensemble(tester, write_log=False):
     if not (nn_row and xgb_row):
         return
 
-    y    = np.array(nn_row[1])
-    cnn  = np.array(nn_row[2])
-    xgb_ = np.array(xgb_row[2])
+    y        = np.array(nn_row[1])
+    cnn      = np.array(nn_row[2])
+    xgb_     = np.array(xgb_row[2])
+    cnn_prob = np.array(nn_row[3])
+    xgb_prob = np.array(xgb_row[3])
     errors       = y == 1
     cnn_tp       = np.sum(errors & (cnn  == 1))
     xgb_tp       = np.sum(errors & (xgb_ == 1))
@@ -178,6 +180,21 @@ def print_ensemble(tester, write_log=False):
     print(f'  Union FP       : {either_fp}')
     print(f'  OR  ensemble   : precision {or_p:.3f}  recall {or_r:.3f}  F1 {or_f1:.3f}')
     print(f'  AND ensemble   : precision {and_p:.3f}  recall {and_r:.3f}  F1 {and_f1:.3f}  (TP={both_tp}  FP={both_fp})')
+
+    def _prob_stats(label, probs, mask):
+        p = probs[mask]
+        if len(p) == 0:
+            print(f'  {label}  (no samples)')
+            return
+        print(f'  {label}  mean={p.mean():.3f}  median={np.median(p):.3f}  min={p.min():.3f}  max={p.max():.3f}  n={len(p)}')
+
+    errors = y == 1
+    print()
+    print('  -- Threshold tuning --')
+    _prob_stats('CNN TP probs', cnn_prob, errors & (cnn == 1))
+    _prob_stats('CNN FP probs', cnn_prob, ~errors & (cnn == 1))
+    _prob_stats('XGB TP probs', xgb_prob, errors & (xgb_ == 1))
+    _prob_stats('XGB FP probs', xgb_prob, ~errors & (xgb_ == 1))
 
     if write_log:
         with open('ensemble.log', 'a', encoding='utf-8') as f:

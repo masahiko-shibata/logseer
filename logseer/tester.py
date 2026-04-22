@@ -48,10 +48,11 @@ class Tester:
     def testModel(self, model, x_test, y_test, fnames=None, heatmap=True, threshold=0.5):
         result = model.predict(x_test)
         if issubclass(type(result[0]), np.ndarray):
-            predictions = [1 if x >= threshold else 0 for x in result]
+            probs = [float(x) for x in result]
+            predictions = [1 if p >= threshold else 0 for p in probs]
         else:
-            proba = model.predict_proba(x_test)[:, 1]
-            predictions = [1 if p >= threshold else 0 for p in proba]
+            probs = list(model.predict_proba(x_test)[:, 1])
+            predictions = [1 if p >= threshold else 0 for p in probs]
 
         if fnames:
             print()
@@ -66,9 +67,10 @@ class Tester:
             if row[0] == model.name:
                 row[1] = row[1] + y_test
                 row[2] = row[2] + predictions
+                row[3] = row[3] + probs
                 added = True
         if self.stored == [] or not added:
-            self.stored.append([model.name, y_test, predictions])
+            self.stored.append([model.name, y_test, predictions, probs])
 
         self.genresult(model.name, y_test, predictions, heatmap=False)
 

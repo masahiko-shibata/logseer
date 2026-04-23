@@ -143,7 +143,7 @@ def train_sklearn(tokenizer, train_texts, test_texts, train_labels, test_labels,
         tester.testModel(model, test_mat, test_labels, threshold=rf_threshold)
 
 
-def print_ensemble(tester, write_log=False):
+def print_ensemble(tester, write_log=False, sweep_start=0.50, sweep_end=0.85, sweep_step=0.05):
     nn_row  = next((r for r in tester.stored if r[0] not in ('xgbModel', 'svmModel', 'rfModel')), None)
     xgb_row = next((r for r in tester.stored if r[0] == 'xgbModel'), None)
     if not (nn_row and xgb_row):
@@ -182,7 +182,7 @@ def print_ensemble(tester, write_log=False):
     print(f'  OR  ensemble   : precision {or_p:.3f}  recall {or_r:.3f}  F1 {or_f1:.3f}')
     print(f'  AND ensemble   : precision {and_p:.3f}  recall {and_r:.3f}  F1 {and_f1:.3f}  (TP={both_tp}  FP={both_fp})')
 
-    def _prob_stats(label, probs, mask):
+    def prob_stats(label, probs, mask):
         p = probs[mask]
         if len(p) == 0:
             print(f'  {label}  (no samples)')
@@ -192,10 +192,24 @@ def print_ensemble(tester, write_log=False):
     errors = y == 1
     print()
     print('  -- Threshold tuning --')
-    _prob_stats('CNN TP probs', cnn_prob, errors & (cnn == 1))
-    _prob_stats('CNN FP probs', cnn_prob, ~errors & (cnn == 1))
-    _prob_stats('XGB TP probs', xgb_prob, errors & (xgb_ == 1))
-    _prob_stats('XGB FP probs', xgb_prob, ~errors & (xgb_ == 1))
+    prob_stats('CNN TP probs', cnn_prob, errors & (cnn == 1))
+    prob_stats('CNN FP probs', cnn_prob, ~errors & (cnn == 1))
+    prob_stats('XGB TP probs', xgb_prob, errors & (xgb_ == 1))
+    prob_stats('XGB FP probs', xgb_prob, ~errors & (xgb_ == 1))
+
+    thresholds = np.arange(sweep_start, sweep_end + sweep_step / 2, sweep_step)
+    print()
+    print('  -- AND threshold sweep --')
+    print(f'  {"CNN_t":>5}  {"XGB_t":>5}  {"TP":>5}  {"FP":>5}  {"precision":>9}  {"recall":>6}  {"F1":>6}')
+    for cnn_t in thresholds:
+        for xgb_t in thresholds:
+            m   = (cnn_prob >= cnn_t) & (xgb_prob >= xgb_t)
+            s_tp = int(np.sum(errors & m))
+            s_fp = int(np.sum(~errors & m))
+            s_p  = s_tp / (s_tp + s_fp) if (s_tp + s_fp) > 0 else 0.0
+            s_r  = s_tp / total_errors if total_errors > 0 else 0.0
+            s_f1 = 2 * s_p * s_r / (s_p + s_r) if (s_p + s_r) > 0 else 0.0
+            print(f'  {cnn_t:>5.2f}  {xgb_t:>5.2f}  {s_tp:>5}  {s_fp:>5}  {s_p:>9.3f}  {s_r:>6.3f}  {s_f1:>6.3f}')
 
     if write_log:
         with open('ensemble.log', 'a', encoding='utf-8') as f:

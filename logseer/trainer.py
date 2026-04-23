@@ -177,7 +177,7 @@ def print_ensemble(tester, ensemble_model=None, write_log=False, sweep_start=0.5
     and_p  = both_tp / (both_tp + both_fp) if (both_tp + both_fp) > 0 else 0.0
     and_r  = both_tp / total_errors if total_errors > 0 else 0.0
     and_f1 = 2 * and_p * and_r / (and_p + and_r) if (and_p + and_r) > 0 else 0.0
-    w = max(len(nn_name), len(skl_name)) + len('-only TP')
+    w = max(len(nn_name), len(skl_name)) + len('-only TP') + 1
     def lbl(s):
         return f'  {s:<{w}}'
 

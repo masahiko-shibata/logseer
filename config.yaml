@@ -24,8 +24,13 @@ batch_size: 32
 learning_rate: 0.0003
 repetition: 100
 retrain: false
-error_weight: 6
 nn_error_weight: 2
+
+# sklearn models to train (any combination of: xgb, svm, rf)
+sklearn_models: [xgb]
+# Which one is the NN ensemble partner (defaults to first in sklearn_models)
+ensemble_model: xgb
+sklearn_weight: 6
 
 # Early stopping
 use_early_stopping: true
@@ -40,8 +45,9 @@ checkpoint_type: best_f1
 start_from_epoch: 0
 max_loss: 0.7
 
-# Classifiers
-test_nn: true
-test_xgb: true
-test_svm: false
-test_rf: false
+# Thresholds
+nn_threshold: 0.5
+sklearn_threshold: 0.5
+
+# Probability dump for threshold analysis (writes proba.csv)
+dump_proba: false

@@ -1,3 +1,4 @@
+import csv
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -85,3 +86,17 @@ class Tester:
             result_text = result_text + tmp_text + '\n'
         with open('result.txt', 'w', encoding='utf-8') as f:
             f.write(result_text)
+
+    def dump_proba(self, path='proba.csv'):
+        """Write all stored probabilities to a CSV for threshold analysis.
+        Columns: model, label, proba
+        """
+        with open(path, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow(['model', 'label', 'proba'])
+            for row in self.stored:
+                name, labels, _, probs = row[0], row[1], row[2], row[3]
+                for label, proba in zip(labels, probs):
+                    writer.writerow([name, label, proba])
+        print(f'Probabilities written to {path}')
+

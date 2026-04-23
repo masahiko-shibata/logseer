@@ -115,52 +115,61 @@ def train_nn(model_name, embedding_layer, train_data, train_labels, val_data, va
     return True
 
 
+SKLEARN_MODELS = frozenset({'xgb', 'svm', 'rf'})
+
+
 def train_sklearn(tokenizer, train_texts, test_texts, train_labels, test_labels, tester, *,
-                  test_xgb=True, test_svm=False, test_rf=False, error_weight=2,
-                  xgb_threshold=0.5, svm_threshold=0.5, rf_threshold=0.5):
+                  sklearn_model='xgb', sklearn_weight=6, sklearn_threshold=0.5):
+    """Train a single sklearn/tree-based model and evaluate it.
+
+    sklearn_model: 'xgb' | 'svm' | 'rf' | 'none'
+    """
+    if not sklearn_model or sklearn_model == 'none':
+        return
+
     train_mat = tokenizer.texts_to_matrix(train_texts, mode='tfidf')
     test_mat  = tokenizer.texts_to_matrix(test_texts,  mode='tfidf')
 
-    if test_xgb:
-        model = xgb.XGBClassifier(scale_pos_weight=error_weight)
-        model.name = 'xgbModel'
-        model.fit(train_mat, train_labels)
-        pickle.dump(model, open('xgboost.pkl', 'wb'))
-        tester.testModel(model, test_mat, test_labels, threshold=xgb_threshold)
+    if sklearn_model == 'xgb':
+        model = xgb.XGBClassifier(scale_pos_weight=sklearn_weight)
+    elif sklearn_model == 'svm':
+        model = svm.SVC(probability=True, class_weight={1: sklearn_weight})
+    elif sklearn_model == 'rf':
+        model = RandomForestClassifier(n_jobs=2, random_state=0, n_estimators=50,
+                                       class_weight={1: sklearn_weight})
+    else:
+        raise ValueError(f'Unknown sklearn_model: {sklearn_model!r}. Choose from: xgb, svm, rf, none')
 
-    if test_svm:
-        model = svm.SVC(probability=True)
-        model.name = 'svmModel'
-        model.fit(train_mat, train_labels)
-        pickle.dump(model, open('svmModel.pkl', 'wb'))
-        tester.testModel(model, test_mat, test_labels, threshold=svm_threshold)
-
-    if test_rf:
-        model = RandomForestClassifier(n_jobs=2, random_state=0, n_estimators=50)
-        model.name = 'rfModel'
-        model.fit(train_mat, train_labels)
-        pickle.dump(model, open('rfModel.pkl', 'wb'))
-        tester.testModel(model, test_mat, test_labels, threshold=rf_threshold)
+    model.name = sklearn_model
+    model.fit(train_mat, train_labels)
+    pickle.dump(model, open(f'{sklearn_model}.pkl', 'wb'))
+    tester.testModel(model, test_mat, test_labels, threshold=sklearn_threshold)
 
 
-def print_ensemble(tester, write_log=False, sweep_start=0.50, sweep_end=0.85, sweep_step=0.05):
-    nn_row  = next((r for r in tester.stored if r[0] not in ('xgbModel', 'svmModel', 'rfModel')), None)
-    xgb_row = next((r for r in tester.stored if r[0] == 'xgbModel'), None)
-    if not (nn_row and xgb_row):
+def print_ensemble(tester, ensemble_model=None, write_log=False, sweep_start=0.50, sweep_end=0.85, sweep_step=0.05):
+    nn_row  = next((r for r in tester.stored if r[0] not in SKLEARN_MODELS), None)
+    if ensemble_model:
+        skl_row = next((r for r in tester.stored if r[0] == ensemble_model), None)
+    else:
+        skl_row = next((r for r in tester.stored if r[0] in SKLEARN_MODELS), None)
+    if not (nn_row and skl_row):
         return
+
+    nn_name  = nn_row[0]
+    skl_name = skl_row[0]
 
     y        = np.array(nn_row[1])
     cnn      = np.array(nn_row[2])
-    xgb_     = np.array(xgb_row[2])
+    skl      = np.array(skl_row[2])
     cnn_prob = np.array(nn_row[3])
-    xgb_prob = np.array(xgb_row[3])
+    skl_prob = np.array(skl_row[3])
     errors       = y == 1
-    cnn_tp       = np.sum(errors & (cnn  == 1))
-    xgb_tp       = np.sum(errors & (xgb_ == 1))
-    both_tp      = np.sum(errors & (cnn  == 1) & (xgb_ == 1))
-    both_fp      = np.sum(~errors & (cnn  == 1) & (xgb_ == 1))
-    either_tp    = np.sum(errors & ((cnn == 1) | (xgb_ == 1)))
-    either_fp    = np.sum(~errors & ((cnn == 1) | (xgb_ == 1)))
+    cnn_tp       = np.sum(errors & (cnn == 1))
+    skl_tp       = np.sum(errors & (skl == 1))
+    both_tp      = np.sum(errors & (cnn == 1) & (skl == 1))
+    both_fp      = np.sum(~errors & (cnn == 1) & (skl == 1))
+    either_tp    = np.sum(errors & ((cnn == 1) | (skl == 1)))
+    either_fp    = np.sum(~errors & ((cnn == 1) | (skl == 1)))
     total_errors = np.sum(errors)
     or_p  = either_tp / (either_tp + either_fp) if (either_tp + either_fp) > 0 else 0.0
     or_r  = either_tp / total_errors if total_errors > 0 else 0.0
@@ -169,18 +178,18 @@ def print_ensemble(tester, write_log=False, sweep_start=0.50, sweep_end=0.85, sw
     and_r  = both_tp / total_errors if total_errors > 0 else 0.0
     and_f1 = 2 * and_p * and_r / (and_p + and_r) if (and_p + and_r) > 0 else 0.0
     print()
-    print('### Ensemble (CNN | XGB) ###')
+    print(f'### Ensemble ({nn_name} | {skl_name}) ###')
     print()
-    print(f'  Total errors   : {total_errors}')
-    print(f'  CNN TP         : {cnn_tp}  (recall {cnn_tp/total_errors:.3f})')
-    print(f'  XGB TP         : {xgb_tp}  (recall {xgb_tp/total_errors:.3f})')
-    print(f'  Overlap (both) : {both_tp}')
-    print(f'  CNN-only TP    : {cnn_tp - both_tp}')
-    print(f'  XGB-only TP    : {xgb_tp - both_tp}')
-    print(f'  Union TP       : {either_tp}')
-    print(f'  Union FP       : {either_fp}')
-    print(f'  OR  ensemble   : precision {or_p:.3f}  recall {or_r:.3f}  F1 {or_f1:.3f}')
-    print(f'  AND ensemble   : precision {and_p:.3f}  recall {and_r:.3f}  F1 {and_f1:.3f}  (TP={both_tp}  FP={both_fp})')
+    print(f'  Total errors      : {total_errors}')
+    print(f'  {nn_name} TP      : {cnn_tp}  (recall {cnn_tp/total_errors:.3f})')
+    print(f'  {skl_name} TP     : {skl_tp}  (recall {skl_tp/total_errors:.3f})')
+    print(f'  Overlap (both)    : {both_tp}')
+    print(f'  {nn_name}-only TP : {cnn_tp - both_tp}')
+    print(f'  {skl_name}-only TP: {skl_tp - both_tp}')
+    print(f'  Union TP          : {either_tp}')
+    print(f'  Union FP          : {either_fp}')
+    print(f'  OR  ensemble      : precision {or_p:.3f}  recall {or_r:.3f}  F1 {or_f1:.3f}')
+    print(f'  AND ensemble      : precision {and_p:.3f}  recall {and_r:.3f}  F1 {and_f1:.3f}  (TP={both_tp}  FP={both_fp})')
 
     def prob_stats(label, probs, mask):
         p = probs[mask]
@@ -189,27 +198,26 @@ def print_ensemble(tester, write_log=False, sweep_start=0.50, sweep_end=0.85, sw
             return
         print(f'  {label}  mean={p.mean():.3f}  median={np.median(p):.3f}  min={p.min():.3f}  max={p.max():.3f}  n={len(p)}')
 
-    errors = y == 1
     print()
     print('  -- Threshold tuning --')
-    prob_stats('CNN TP probs', cnn_prob, errors & (cnn == 1))
-    prob_stats('CNN FP probs', cnn_prob, ~errors & (cnn == 1))
-    prob_stats('XGB TP probs', xgb_prob, errors & (xgb_ == 1))
-    prob_stats('XGB FP probs', xgb_prob, ~errors & (xgb_ == 1))
+    prob_stats(f'{nn_name} TP probs',  cnn_prob, errors & (cnn == 1))
+    prob_stats(f'{nn_name} FP probs',  cnn_prob, ~errors & (cnn == 1))
+    prob_stats(f'{skl_name} TP probs', skl_prob, errors & (skl == 1))
+    prob_stats(f'{skl_name} FP probs', skl_prob, ~errors & (skl == 1))
 
     thresholds = np.arange(sweep_start, sweep_end + sweep_step / 2, sweep_step)
     print()
     print('  -- AND threshold sweep --')
-    print(f'  {"CNN_t":>5}  {"XGB_t":>5}  {"TP":>5}  {"FP":>5}  {"precision":>9}  {"recall":>6}  {"F1":>6}')
+    print(f'  {"NN_t":>5}  {"SKL_t":>5}  {"TP":>5}  {"FP":>5}  {"precision":>9}  {"recall":>6}  {"F1":>6}')
     for cnn_t in thresholds:
-        for xgb_t in thresholds:
-            m   = (cnn_prob >= cnn_t) & (xgb_prob >= xgb_t)
+        for skl_t in thresholds:
+            m    = (cnn_prob >= cnn_t) & (skl_prob >= skl_t)
             s_tp = int(np.sum(errors & m))
             s_fp = int(np.sum(~errors & m))
             s_p  = s_tp / (s_tp + s_fp) if (s_tp + s_fp) > 0 else 0.0
             s_r  = s_tp / total_errors if total_errors > 0 else 0.0
             s_f1 = 2 * s_p * s_r / (s_p + s_r) if (s_p + s_r) > 0 else 0.0
-            print(f'  {cnn_t:>5.2f}  {xgb_t:>5.2f}  {s_tp:>5}  {s_fp:>5}  {s_p:>9.3f}  {s_r:>6.3f}  {s_f1:>6.3f}')
+            print(f'  {cnn_t:>5.2f}  {skl_t:>5.2f}  {s_tp:>5}  {s_fp:>5}  {s_p:>9.3f}  {s_r:>6.3f}  {s_f1:>6.3f}')
 
     if write_log:
         with open('ensemble.log', 'a', encoding='utf-8') as f:
@@ -250,7 +258,6 @@ def run_training(
     embedding_layer_type='vanilla',
     model_name='LogCNNLite',
     repetition=100,
-    error_weight=5,
     nn_error_weight=1,
     learning_rate=0.0003,
     max_loss=0.7,
@@ -266,26 +273,40 @@ def run_training(
     mode='max',
     restore_best_weights=False,
     test_nn=True,
-    test_xgb=True,
-    test_svm=False,
-    test_rf=False,
+    sklearn_models=None,
+    ensemble_model=None,
     nn_threshold=0.5,
-    xgb_threshold=0.5,
-    svm_threshold=0.5,
-    rf_threshold=0.5,
+    sklearn_threshold=0.5,
+    sklearn_weight=6,
     success_log_ratio=99,
     success_log_ratio_test=12.4,
+    dump_proba=False,
 ):
     """Run the full training loop and return the Tester instance.
 
     loader_class: Loader subclass to use (default: JDELoader). Pass Loader for generic use.
     checkpoint_type: 'multi_metric' (default), 'best_f1', or 'standard'
+    sklearn_models: list of sklearn models to train, e.g. ['xgb', 'svm', 'rf']. None or [] = skip all.
+    ensemble_model: which sklearn model to use in print_ensemble. Defaults to first in sklearn_models.
     use_early_stopping: set to True to enable EarlyStopping (also requires patience to be set)
     patience: number of epochs with no improvement before stopping (only used when use_early_stopping=True)
     """
     from .jde_loader import JDELoader
     if loader_class is None:
         loader_class = JDELoader
+
+    # Normalise sklearn_models to a list
+    if sklearn_models is None:
+        _sklearn_models = []
+    elif isinstance(sklearn_models, str):
+        _sklearn_models = [m.strip() for m in sklearn_models.replace(',', ' ').split() if m.strip()]
+    else:
+        _sklearn_models = list(sklearn_models)
+    # Filter out 'none'
+    _sklearn_models = [m for m in _sklearn_models if m != 'none']
+
+    # Ensemble partner: first sklearn model by default
+    _ensemble_model = ensemble_model or (_sklearn_models[0] if _sklearn_models else None)
     ld = loader_class()
     tester = Tester()
 
@@ -332,19 +353,21 @@ def run_training(
             if not ok:
                 continue
 
-        train_sklearn(tokenizer, train_texts, test_texts, train_labels, test_labels, tester,
-                      test_xgb=test_xgb, test_svm=test_svm, test_rf=test_rf,
-                      error_weight=error_weight,
-                      xgb_threshold=xgb_threshold, svm_threshold=svm_threshold,
-                      rf_threshold=rf_threshold)
+        for skl_m in _sklearn_models:
+            train_sklearn(tokenizer, train_texts, test_texts, train_labels, test_labels, tester,
+                          sklearn_model=skl_m,
+                          sklearn_weight=sklearn_weight,
+                          sklearn_threshold=sklearn_threshold)
 
         if i % 10 == 9:
             tester.total(heatmap=False)
 
-        print_ensemble(tester)
+        print_ensemble(tester, ensemble_model=_ensemble_model)
 
     tester.total(heatmap=True)
-    print_ensemble(tester, write_log=True)
+    print_ensemble(tester, ensemble_model=_ensemble_model, write_log=True)
     significance_test(tester)
+    if dump_proba:
+        tester.dump_proba()
     return tester
 

@@ -37,6 +37,8 @@ def main():
                 value = True
             elif raw_value.lower() in ('false', 'no'):
                 value = False
+            elif key in ('sklearn_models',) and ',' in raw_value:
+                value = [m.strip() for m in raw_value.split(',')]
             else:
                 value = raw_value
         cfg[key] = value
@@ -56,8 +58,10 @@ def main():
         embedding_layer_type=cfg.get('embedding_layer', 'vanilla'),
         model_name=cfg.get('model_name', 'LogCNNLite'),
         repetition=cfg.get('repetition', 100),
-        error_weight=cfg.get('error_weight', 6),
         nn_error_weight=cfg.get('nn_error_weight', 2),
+        sklearn_models=cfg.get('sklearn_models', ['xgb']),
+        ensemble_model=cfg.get('ensemble_model', None),
+        sklearn_weight=cfg.get('sklearn_weight', 6),
         learning_rate=cfg.get('learning_rate', 0.0003),
         max_loss=cfg.get('max_loss', 0.7),
         retrain=cfg.get('retrain', False),
@@ -72,15 +76,11 @@ def main():
         mode=cfg.get('mode', 'max'),
         restore_best_weights=cfg.get('restore_best_weights', False),
         test_nn=cfg.get('test_nn', True),
-        test_xgb=cfg.get('test_xgb', True),
-        test_svm=cfg.get('test_svm', False),
-        test_rf=cfg.get('test_rf', False),
         nn_threshold=cfg.get('nn_threshold', 0.5),
-        xgb_threshold=cfg.get('xgb_threshold', 0.5),
-        svm_threshold=cfg.get('svm_threshold', 0.5),
-        rf_threshold=cfg.get('rf_threshold', 0.5),
+        sklearn_threshold=cfg.get('sklearn_threshold', 0.5),
         success_log_ratio=cfg.get('success_log_ratio', 99),
         success_log_ratio_test=cfg.get('success_log_ratio_test', 12.4),
+        dump_proba=cfg.get('dump_proba', False),
     )
 
 

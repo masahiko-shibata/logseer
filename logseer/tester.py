@@ -45,7 +45,8 @@ class Tester:
 
         return result_text
 
-    def testModel(self, model, x_test, y_test, fnames=None, heatmap=True, threshold=0.5):
+    def testModel(self, model, x_test, y_test, fnames=None, heatmap=True,
+                  I c=0.5):
         result = model.predict(x_test)
         if issubclass(type(result[0]), np.ndarray):
             probs = result.flatten().tolist()

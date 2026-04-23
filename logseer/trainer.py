@@ -55,7 +55,7 @@ def train_nn(model_name, embedding_layer, train_data, train_labels, val_data, va
              model_save_path, epochs, batch_size, learning_rate, max_loss, retrain=False,
              checkpoint_type='multi_metric', start_from_epoch=0, es_start_from_epoch=0,
              use_early_stopping=False, patience=None, monitor='val_recall', mode='max',
-             restore_best_weights=False, error_weight=1):
+             restore_best_weights=False, error_weight=1, threshold=0.5):
     train_labels = np.array(train_labels, dtype=np.int32)
     val_labels   = np.array(val_labels,   dtype=np.int32)
 
@@ -111,12 +111,13 @@ def train_nn(model_name, embedding_layer, train_data, train_labels, val_data, va
               class_weight={0: 1, 1: error_weight} if error_weight != 1 else None)
 
     model = load_model(model_save_path)
-    tester.testModel(model, test_data, test_labels, threshold=0.5)
+    tester.testModel(model, test_data, test_labels, threshold=threshold)
     return True
 
 
 def train_sklearn(tokenizer, train_texts, test_texts, train_labels, test_labels, tester, *,
-                  test_xgb=True, test_svm=False, test_rf=False, error_weight=2):
+                  test_xgb=True, test_svm=False, test_rf=False, error_weight=2,
+                  xgb_threshold=0.5, svm_threshold=0.5, rf_threshold=0.5):
     train_mat = tokenizer.texts_to_matrix(train_texts, mode='tfidf')
     test_mat  = tokenizer.texts_to_matrix(test_texts,  mode='tfidf')
 
@@ -125,21 +126,21 @@ def train_sklearn(tokenizer, train_texts, test_texts, train_labels, test_labels,
         model.name = 'xgbModel'
         model.fit(train_mat, train_labels)
         pickle.dump(model, open('xgboost.pkl', 'wb'))
-        tester.testModel(model, test_mat, test_labels)
+        tester.testModel(model, test_mat, test_labels, threshold=xgb_threshold)
 
     if test_svm:
         model = svm.SVC(probability=True)
         model.name = 'svmModel'
         model.fit(train_mat, train_labels)
         pickle.dump(model, open('svmModel.pkl', 'wb'))
-        tester.testModel(model, test_mat, test_labels)
+        tester.testModel(model, test_mat, test_labels, threshold=svm_threshold)
 
     if test_rf:
         model = RandomForestClassifier(n_jobs=2, random_state=0, n_estimators=50)
         model.name = 'rfModel'
         model.fit(train_mat, train_labels)
         pickle.dump(model, open('rfModel.pkl', 'wb'))
-        tester.testModel(model, test_mat, test_labels)
+        tester.testModel(model, test_mat, test_labels, threshold=rf_threshold)
 
 
 def print_ensemble(tester, write_log=False):
@@ -254,6 +255,10 @@ def run_training(
     test_xgb=True,
     test_svm=False,
     test_rf=False,
+    nn_threshold=0.5,
+    xgb_threshold=0.5,
+    svm_threshold=0.5,
+    rf_threshold=0.5,
     success_log_ratio=99,
     success_log_ratio_test=12.4,
 ):
@@ -308,13 +313,16 @@ def run_training(
                 monitor=monitor, mode=mode,
                 restore_best_weights=restore_best_weights,
                 error_weight=nn_error_weight,
+                threshold=nn_threshold,
             )
             if not ok:
                 continue
 
         train_sklearn(tokenizer, train_texts, test_texts, train_labels, test_labels, tester,
                       test_xgb=test_xgb, test_svm=test_svm, test_rf=test_rf,
-                      error_weight=error_weight)
+                      error_weight=error_weight,
+                      xgb_threshold=xgb_threshold, svm_threshold=svm_threshold,
+                      rf_threshold=rf_threshold)
 
         if i % 10 == 9:
             tester.total(heatmap=False)

@@ -75,6 +75,10 @@ def main():
         test_xgb=cfg.get('test_xgb', True),
         test_svm=cfg.get('test_svm', False),
         test_rf=cfg.get('test_rf', False),
+        nn_threshold=cfg.get('nn_threshold', 0.5),
+        xgb_threshold=cfg.get('xgb_threshold', 0.5),
+        svm_threshold=cfg.get('svm_threshold', 0.5),
+        rf_threshold=cfg.get('rf_threshold', 0.5),
         success_log_ratio=cfg.get('success_log_ratio', 99),
         success_log_ratio_test=cfg.get('success_log_ratio_test', 12.4),
     )

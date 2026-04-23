@@ -177,15 +177,19 @@ def print_ensemble(tester, ensemble_model=None, write_log=False, sweep_start=0.5
     and_p  = both_tp / (both_tp + both_fp) if (both_tp + both_fp) > 0 else 0.0
     and_r  = both_tp / total_errors if total_errors > 0 else 0.0
     and_f1 = 2 * and_p * and_r / (and_p + and_r) if (and_p + and_r) > 0 else 0.0
+    w = max(len(nn_name), len(skl_name)) + len('-only TP')
+    def lbl(s):
+        return f'  {s:<{w}}'
+
     print()
     print(f'### Ensemble ({nn_name} | {skl_name}) ###')
     print()
-    print(f'  Total errors      : {total_errors}')
-    print(f'  {nn_name} TP      : {cnn_tp}  (recall {cnn_tp/total_errors:.3f})')
-    print(f'  {skl_name} TP     : {skl_tp}  (recall {skl_tp/total_errors:.3f})')
-    print(f'  Overlap (both)    : {both_tp}')
-    print(f'  {nn_name}-only TP : {cnn_tp - both_tp}')
-    print(f'  {skl_name}-only TP: {skl_tp - both_tp}')
+    print(lbl('Total errors')    + f': {total_errors}')
+    print(lbl(f'{nn_name} TP')   + f': {cnn_tp}  (recall {cnn_tp/total_errors:.3f})')
+    print(lbl(f'{skl_name} TP')  + f': {skl_tp}  (recall {skl_tp/total_errors:.3f})')
+    print(lbl('Overlap (both)')  + f': {both_tp}')
+    print(lbl(f'{nn_name}-only TP')  + f': {cnn_tp - both_tp}')
+    print(lbl(f'{skl_name}-only TP') + f': {skl_tp - both_tp}')
     print(f'  Union TP          : {either_tp}')
     print(f'  Union FP          : {either_fp}')
     print(f'  OR  ensemble      : precision {or_p:.3f}  recall {or_r:.3f}  F1 {or_f1:.3f}')

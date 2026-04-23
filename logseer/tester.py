@@ -48,7 +48,7 @@ class Tester:
     def testModel(self, model, x_test, y_test, fnames=None, heatmap=True, threshold=0.5):
         result = model.predict(x_test)
         if issubclass(type(result[0]), np.ndarray):
-            probs = [float(x) for x in result]
+            probs = result.flatten().tolist()
             predictions = [1 if p >= threshold else 0 for p in probs]
         else:
             probs = list(model.predict_proba(x_test)[:, 1])

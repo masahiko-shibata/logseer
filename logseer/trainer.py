@@ -282,6 +282,9 @@ def run_training(
     nn_threshold=0.5,
     sklearn_threshold=0.5,
     sklearn_weight=6,
+    sweep_start=0.50,
+    sweep_end=0.85,
+    sweep_step=0.05,
     success_log_ratio=99,
     success_log_ratio_test=12.4,
     dump_proba=False,
@@ -366,10 +369,12 @@ def run_training(
         if i % 10 == 9:
             tester.total(heatmap=False)
 
-        print_ensemble(tester, ensemble_model=_ensemble_model)
+        print_ensemble(tester, ensemble_model=_ensemble_model,
+                       sweep_start=sweep_start, sweep_end=sweep_end, sweep_step=sweep_step)
 
     tester.total(heatmap=True)
-    print_ensemble(tester, ensemble_model=_ensemble_model, write_log=True)
+    print_ensemble(tester, ensemble_model=_ensemble_model, write_log=True,
+                   sweep_start=sweep_start, sweep_end=sweep_end, sweep_step=sweep_step)
     significance_test(tester)
     if dump_proba:
         tester.dump_proba()

@@ -23,6 +23,8 @@ class Loader:
         print('*** Loading Files ***')
         efiles, sfiles = [], []
         for name in sorted(os.listdir(DATA_DIR)):
+            if name.startswith('.'):
+                continue
             path = os.path.join(DATA_DIR, name)
             if os.path.isdir(path):
                 if name == 'error':
@@ -32,14 +34,17 @@ class Loader:
                 else:
                     continue
 
-                endval = len(os.listdir(path)) - 1
-                for i, dname in enumerate(sorted(os.listdir(path))):
+                subdirs = [d for d in sorted(os.listdir(path)) if not d.startswith('.')]
+                endval = len(subdirs) - 1
+                for i, dname in enumerate(subdirs):
                     if int(dname) < fromid or int(dname) > toid:
                         continue
                     self.progress(i, endval)
                     dpath = os.path.join(path, dname)
                     dfiles = []
                     for fname in sorted(os.listdir(dpath)):
+                        if fname.startswith('.'):
+                            continue
                         fpath = os.path.join(dpath, fname)
                         with open(fpath, encoding='utf-8') as f:
                             dfiles.append(f.read())

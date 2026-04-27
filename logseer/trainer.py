@@ -223,6 +223,19 @@ def print_ensemble(tester, ensemble_model=None, write_log=False, sweep_start=0.5
             s_f1 = 2 * s_p * s_r / (s_p + s_r) if (s_p + s_r) > 0 else 0.0
             print(f'  {cnn_t:>5.2f}  {skl_t:>5.2f}  {s_tp:>5}  {s_fp:>5}  {s_p:>9.3f}  {s_r:>6.3f}  {s_f1:>6.3f}')
 
+    print()
+    print('  -- OR threshold sweep --')
+    print(f'  {"NN_t":>5}  {"SKL_t":>5}  {"TP":>5}  {"FP":>5}  {"precision":>9}  {"recall":>6}  {"F1":>6}')
+    for cnn_t in thresholds:
+        for skl_t in thresholds:
+            m    = (cnn_prob >= cnn_t) | (skl_prob >= skl_t)
+            s_tp = int(np.sum(errors & m))
+            s_fp = int(np.sum(~errors & m))
+            s_p  = s_tp / (s_tp + s_fp) if (s_tp + s_fp) > 0 else 0.0
+            s_r  = s_tp / total_errors if total_errors > 0 else 0.0
+            s_f1 = 2 * s_p * s_r / (s_p + s_r) if (s_p + s_r) > 0 else 0.0
+            print(f'  {cnn_t:>5.2f}  {skl_t:>5.2f}  {s_tp:>5}  {s_fp:>5}  {s_p:>9.3f}  {s_r:>6.3f}  {s_f1:>6.3f}')
+
     if write_log:
         with open('ensemble.log', 'a', encoding='utf-8') as f:
             f.write(f'{either_tp}\t{either_fp}\t{total_errors - either_tp}\t{total_errors}\n')

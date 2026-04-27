@@ -13,7 +13,7 @@ class Loader:
         self.nb_errors = 0
 
     def progress(self, i, end_val, bar_length=50):
-        percent = float(i) / end_val
+        percent = float(i) / end_val if end_val > 0 else 1.0
         hashes = '#' * int(round(percent * bar_length))
         spaces = ' ' * (bar_length - len(hashes))
         sys.stdout.write(f"\rProcessing... [{hashes + spaces}] {int(percent * 100)}% ")

@@ -271,6 +271,7 @@ def NNWorkV2(embedding_layer):
     model.add(Conv1D(filters=64, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
     model.add(GlobalAveragePooling1D())
     model.add(Dense(128, activation='elu'))
+    model.add(Dropout(0.3))
     model.add(Dense(64, activation='elu'))
     model.add(Dense(1, activation='sigmoid'))
     return model

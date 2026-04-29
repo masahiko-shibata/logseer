@@ -1,6 +1,8 @@
 import os
+import pickle
 import numpy as np
 from tensorflow.keras.preprocessing.sequence import pad_sequences
+from tensorflow.keras.models import load_model
 
 from .jde_loader import JDELoader
 
@@ -10,6 +12,18 @@ OUTCOME_RESTART = 'RESTART'
 
 
 class Seer:
+
+    @classmethod
+    def from_files(cls, nn_model_path, tokenizer_path, xgb_path=None, **kwargs):
+        """Load models from file paths and return a Seer instance."""
+        nn_model = load_model(nn_model_path)
+        with open(tokenizer_path, 'rb') as f:
+            tokenizer = pickle.load(f)
+        xgb_model = None
+        if xgb_path and os.path.exists(xgb_path):
+            with open(xgb_path, 'rb') as f:
+                xgb_model = pickle.load(f)
+        return cls(nn_model, tokenizer, xgb_model, **kwargs)
 
     def __init__(self, nn_model, tokenizer, xgb_model=None, *,
                  numchar=3000, max_sequence_length=26000,

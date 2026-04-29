@@ -34,7 +34,7 @@ This makes the problem harder — there is no explicit error signal in the input
 
 The relative cost ratio between FN and FP depends on the system and operational context. A missed failure (FN) may result in a costly timeout and recovery cycle, or may resolve itself depending on the nature of the failure. A false alarm (FP) would trigger an unnecessary preventive action such as a restart. The right operating point depends on which cost dominates in your environment — use the threshold sweep tables to explore the tradeoff.
 
-Note: the JDE results were obtained in shadow mode — predictions were made but no automated action was taken. The example results are tuned for F1 as a neutral baseline; however, the high-precision operating point (83% precision, 11% recall) may make a practical restart signal depending on restart cost tolerance.
+Note: the JDE results were obtained in shadow mode — predictions were made but no automated action was taken. The example results are tuned for F1 as a neutral baseline; however, the high-precision operating point (82% precision, 11% recall) may make a practical restart signal depending on restart cost tolerance.
 
 ## Approach
 
@@ -44,10 +44,11 @@ The pipeline includes:
 
 - **Multi-file log ingestion** — log files from multiple server processes are combined per operation into a single text representation
 - **Domain-aware preprocessing** — timestamps, IDs, IP addresses, and other high-cardinality tokens are normalized to reduce noise while preserving meaningful signal
-- **NNWorkV2** — a deep dilated 1D CNN that performed best in comparison against RNN-based models (LSTM, GRU, biLSTM, biGRU) and shallower CNN variants. Notably, this is a convolutional architecture more commonly associated with image processing, applied here to log token sequences — sequential models underperformed, suggesting the signal in these logs is not strongly order-dependent at the token level
+- **LogCNNv2** — a deep dilated 1D CNN that performed best in comparison against RNN-based models (LSTM, GRU, biLSTM, biGRU) and shallower CNN variants. Notably, this is a convolutional architecture more commonly associated with image processing, applied here to log token sequences — sequential models underperformed, suggesting the signal in these logs is not strongly order-dependent at the token level
 - **XGBoost** — a TF-IDF based classifier that captures anomalous token occurrence patterns
 - **Ensemble** — CNN and XGBoost are intentionally complementary. XGBoost detects anomalies through token frequency and TF-IDF signals; the CNN captures sequential and contextual patterns. They are expected to miss different errors, and the ensemble value comes from that disagreement. Both models consistently identify distinct failure cases the other misses — CNN-only and XGBoost-only true positives appear in every evaluation run.
 - **Repeated evaluation** — 100 randomized train/test splits with Fisher's exact significance testing for statistically reliable performance estimates
+- **Token importance analysis** — XGBoost token importance was analyzed across the reference environment. No individual tokens stood out as dominant failure indicators — the signal is diffuse across many tokens rather than concentrated in a few. This is a key motivation for an ML approach: there is no simple grep rule that captures failure state
 
 > Note: log collection from live servers is handled by a separate pipeline outside this repository. This codebase assumes logs have already been collected and organized into the data directory structure described below.
 
@@ -63,13 +64,13 @@ Before each deployment, LogSeer collects the current JDE server logs from all ru
 
 ## Results
 
-The following results are from evaluation on a private dataset. Performance will vary across environments — even systems using the same log format (e.g. other JDE installations) may have different failure signatures depending on their configuration, workload, and history. Training and evaluating on your own data is strongly recommended.
+The following results are from evaluation on a private dataset. Performance will vary across environments — even systems using the same log format (e.g. other JDE installations) may have different failure signatures depending on their configuration, workload, and history. **Training on your own data is required** — no pre-trained models are included in this repository. Log data reflects environment-specific system state and should not leave the environment it was collected in.
 
-LogSeer combines a dilated CNN (NNWorkV2) with XGBoost. The two models are intentionally complementary — XGBoost detects anomalies through token frequency and TF-IDF signals, while the CNN captures sequential and contextual patterns in the log. They are expected to miss different errors, and the ensemble value comes from that disagreement.
+LogSeer combines a dilated CNN (LogCNNv2) with XGBoost. The two models are intentionally complementary — XGBoost detects anomalies through token frequency and TF-IDF signals, while the CNN captures sequential and contextual patterns in the log. They are expected to miss different errors, and the ensemble value comes from that disagreement.
 
-**Best F1**: OR ensemble achieves F1=0.417 (precision 0.44, recall 0.40) — approximately 0.04 above XGB alone.
+**Best F1**: OR ensemble achieves F1=0.464 — approximately 0.05 above XGB alone (best threshold: NN=0.86, XGB=0.50).
 
-**High-precision mode**: AND ensemble at (NN=0.82, XGB=0.82) achieves 83% precision at 11% recall. When both models agree, the alert is almost always correct.
+**High-precision mode**: AND ensemble at (NN=0.82, XGB=0.82) achieves 82% precision at 11% recall. When both models agree, the alert is almost always correct.
 
 Thresholds are configurable via `nn_threshold` and `sklearn_threshold`. The sweep tables printed during training show the full tradeoff surface.
 
@@ -80,15 +81,17 @@ The ensemble gain over individual models is consistent across all evaluation run
 ```
 logseer/
 ├── logseer/
-│   ├── loader.py        # Log file loading, preprocessing, and train/test split
+│   ├── loader.py        # Log file loading and preprocessing
 │   ├── models.py        # CNN, RNN, and attention-based model architectures
 │   ├── trainer.py       # Training loop, sklearn models, ensemble reporting
 │   ├── tester.py        # Model evaluation and result accumulation
 │   ├── checkpoints.py   # Custom Keras checkpoint callbacks
+│   ├── seer.py          # Inference class (Seer) used by predict.py and notebooks
 │   └── __init__.py
 ├── notebooks/
 │   ├── train.ipynb      # Training pipeline (Google Colab)
-│   └── predict.ipynb    # Inference on new operations
+│   └── predict.ipynb    # Inference on new log sets
+├── predict.py           # CLI prediction script (exit 0=OK, 1=ALERT, 2=RESTART)
 └── requirements.txt
 ```
 

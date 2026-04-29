@@ -21,37 +21,43 @@ class Loader:
 
     def loadfiles(self, DATA_DIR, fromid=0, toid=6000):
         print('*** Loading Files ***')
-        efiles, sfiles = [], []
+        success_file_groups, error_file_groups = [], []
         for name in sorted(os.listdir(DATA_DIR)):
             if name.startswith('.'):
                 continue
             path = os.path.join(DATA_DIR, name)
             if os.path.isdir(path):
                 if name == 'error':
-                    tmpfiles = efiles
+                    file_groups = error_file_groups
                 elif name == 'success':
-                    tmpfiles = sfiles
+                    file_groups = success_file_groups
                 else:
                     continue
 
                 subdirs = [d for d in sorted(os.listdir(path)) if not d.startswith('.')]
                 endval = len(subdirs) - 1
-                for i, dname in enumerate(subdirs):
-                    if int(dname) < fromid or int(dname) > toid:
-                        continue
+                for i, directory_name in enumerate(subdirs):
+                    # fromid and toid only works when directory names are integers
+                    try:
+                        dir_id = int(directory_name)
+                        if dir_id < fromid or dir_id > toid:
+                            continue
+                    except ValueError:
+                        pass
+
                     self.progress(i, endval)
-                    dpath = os.path.join(path, dname)
-                    dfiles = []
+                    dpath = os.path.join(path, directory_name)
+                    files = []
                     for fname in sorted(os.listdir(dpath)):
                         if fname.startswith('.'):
                             continue
                         fpath = os.path.join(dpath, fname)
                         with open(fpath, encoding='utf-8') as f:
-                            dfiles.append(f.read())
-                    tmpfiles.append([dfiles, dname])
+                            files.append(f.read())
+                    file_groups.append([files, directory_name])
                 print()
 
-        return sfiles, efiles
+        return success_file_groups, error_file_groups
 
     def extract_file_tag(self, file):
         """Return a domain-specific tag string for a single log file.
@@ -59,16 +65,17 @@ class Loader:
         """
         return ''
 
-    def gen_text_label(self, files, label_id, numchar=3000, multiple=1):
+    def gen_texts(self, file_groups, numchar=3000):
+        """Generate cleaned texts from file groups. Returns [[text, group_name], ...]."""
         print('*** Generating Data ***')
-        text_label = []
-        endval = len(files) - 1
-        for i, item in enumerate(files):
-            filegroup = item[0]
-            dname = item[1]
+        texts = []
+        endval = len(file_groups) - 1
+        for i, item in enumerate(file_groups):
+            files = item[0]
+            group_name = item[1]
             t = []
             self.progress(i, endval)
-            for file in filegroup:
+            for file in files:
                 start_index = len(file) - numchar
                 index = file.find('\n', start_index)
                 if index == -1:
@@ -76,14 +83,15 @@ class Loader:
                 str_to_add = file[index:]
                 tag = self.extract_file_tag(file)
                 t.append(str_to_add + (' ***' + tag + 'LOG*** ' if tag else ' '))
-            for rep in range(multiple):
-                np.random.shuffle(t)
-                text_label.append([''.join(t), label_id, dname])
-                if label_id == 1:
-                    self.nb_errors += 1
+            np.random.shuffle(t)
+            texts.append([''.join(t), group_name])
         print()
-        self.clean(text_label)
-        return text_label
+        self.clean(texts)
+        return texts
+
+    def gen_labeled_texts(self, file_groups, label_id, numchar=3000):
+        texts = self.gen_texts(file_groups, numchar=numchar)
+        return [[text, label_id, group_name] for text, group_name in texts]
 
     def clean_domain(self, t):
         """Apply domain-specific text normalization. Override in subclasses."""
@@ -121,10 +129,11 @@ class Loader:
 
     def load(self, DATA_DIR, numchar=3000, toid=6000):
         self.nb_errors = 0
-        sfiles, efiles = self.loadfiles(DATA_DIR, toid=toid)
-        etext_label = self.gen_text_label(efiles, 1, numchar=numchar, multiple=1)
-        stext_label = self.gen_text_label(sfiles, 0, numchar=numchar, multiple=1)
-        self.stored_data = stext_label + etext_label
+        success_file_groups, error_file_groups = self.loadfiles(DATA_DIR, toid=toid)
+        error_labeled_texts = self.gen_labeled_texts(error_file_groups, 1, numchar=numchar)
+        success_labeled_texts = self.gen_labeled_texts(success_file_groups, 0, numchar=numchar)
+        self.nb_errors = len(error_labeled_texts)
+        self.stored_data = success_labeled_texts + error_labeled_texts
 
     def getdata(self, DATA_DIR, TEST_ERRORNUM=10, SUCCESS_LOG_RATIO=99, SUCCESS_LOG_RATIO_TEST=12.4,
                 force_reload=False, numchar=3000, toid=6000):
@@ -136,39 +145,36 @@ class Loader:
         nb_success = int(self.nb_errors * SUCCESS_LOG_RATIO)
         nb_test_error = TEST_ERRORNUM
         texts, labels, test_texts, test_labels = [], [], [], []
-        text_labels = []
-        test_text_labels = []
-        all_test_list = []
+        labeled_texts = []
+        test_labeled_texts = []
 
-        for j in self.stored_data:
-            if j[1] == 1:
-                if nb_test_error > 0 and j[2] not in all_test_list:
-                    test_text_labels.append(j)
-                    all_test_list.append(j[2])
+        for labeled_text in self.stored_data:
+            if labeled_text[1] == 1:
+                if nb_test_error > 0:
+                    test_labeled_texts.append(labeled_text)
                     nb_test_error -= 1
                     continue
                 else:
-                    text_labels.append(j)
+                    labeled_texts.append(labeled_text)
                     continue
             else:
-                if nb_test_success > 0 and j[2] not in all_test_list:
-                    test_text_labels.append(j)
+                if nb_test_success > 0:
+                    test_labeled_texts.append(labeled_text)
                     nb_test_success -= 1
-                    all_test_list.append(j[2])
                     continue
                 elif nb_success > 0:
-                    text_labels.append(j)
+                    labeled_texts.append(labeled_text)
                     nb_success -= 1
 
-        test_ids = {row[2] for row in test_text_labels}
-        text_labels = [row for row in text_labels if row[2] not in test_ids]
+        test_ids = {row[2] for row in test_labeled_texts}
+        labeled_texts = [row for row in labeled_texts if row[2] not in test_ids]
 
         with open('datalist.log', 'a', encoding='utf-8') as f:
-            for row in test_text_labels:
+            for row in test_labeled_texts:
                 test_texts.append(row[0])
                 test_labels.append(row[1])
                 f.write(row[2] + '\n')
-            for row in text_labels:
+            for row in labeled_texts:
                 texts.append(row[0])
                 labels.append(row[1])
                 f.write('train' + row[2] + '\n')

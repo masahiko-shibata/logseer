@@ -33,7 +33,7 @@ class JDELoader(Loader):
             return 'JDENET'
         return ''
 
-    def gen_labeled_texts(self, file_groups, label_id, numchar=3000, multiple=1):
+    def gen_labeled_texts(self, file_groups, label_id, numchar=3000):
         """Extend base gen_text_label to print JDE-specific log type counts."""
         num_k = sum(
             1 for item in file_groups
@@ -45,7 +45,7 @@ class JDELoader(Loader):
             for file in item[0]
             if file.find('jdenet_n> registered', 0, 200) != -1
         )
-        result = super().gen_labeled_texts(file_groups, label_id, numchar=numchar, multiple=multiple)
+        result = super().gen_labeled_texts(file_groups, label_id, numchar=numchar)
         print('Found %s kernel logs.' % num_k)
         print('Found %s jdenet logs.' % num_n)
         return result

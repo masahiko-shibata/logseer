@@ -31,11 +31,6 @@ class Tester:
         print()
         print(result_text)
 
-        filename = name + '.log'
-        content = str(tp) + '\t' + str(fp) + '\t' + str(tn) + '\t' + str(fn) + '\n'
-        with open(filename, 'a', encoding='utf-8') as f:
-            f.write(content)
-
         if heatmap:
             plt.figure()
             df_cm = pd.DataFrame(cm, index=['Success', 'Failed'])

@@ -14,7 +14,7 @@ def main():
     parser.add_argument('input', help='Directory of log sets (each subdirectory = one set)')
     parser.add_argument('--config', default='config.yaml')
     parser.add_argument('--nn-model',     default=None,    help='Path to NN model (overrides config)')
-    parser.add_argument('--xgb-model',    default='xgb.pkl')
+    parser.add_argument('--xgb-model',    default=None,    help='Path to XGB model (overrides config)')
     parser.add_argument('--tokenizer',    default=None,    help='Path to tokenizer pickle (overrides config)')
     parser.add_argument('--nn-threshold', type=float, default=None)
     parser.add_argument('--xgb-threshold', type=float, default=None)
@@ -24,7 +24,7 @@ def main():
         cfg = yaml.safe_load(f)
 
     nn_model_path  = args.nn_model       or cfg.get('model_save_path',   'logseer.keras')
-    xgb_model_path = args.xgb_model
+    xgb_model_path = args.xgb_model     or cfg.get('xgb_path',          'xgb.pkl')
     tokenizer_path = args.tokenizer      or cfg.get('tokenizer_path',    'tokenizer.pickle')
     nn_threshold   = args.nn_threshold   if args.nn_threshold  is not None else cfg.get('nn_threshold',      0.5)
     xgb_threshold  = args.xgb_threshold  if args.xgb_threshold is not None else cfg.get('sklearn_threshold', 0.5)

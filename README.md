@@ -34,7 +34,7 @@ This makes the problem harder — there is no explicit error signal in the input
 
 The relative cost ratio between FN and FP depends on the system and operational context. A missed failure (FN) may result in a costly timeout and recovery cycle, or may resolve itself depending on the nature of the failure. A false alarm (FP) would trigger an unnecessary preventive action such as a restart. The right operating point depends on which cost dominates in your environment — use the threshold sweep tables to explore the tradeoff.
 
-Note: the JDE results were obtained in shadow mode — predictions were made but no automated action was taken. The example results are tuned for F1 as a neutral baseline; however, the high-precision operating point (82% precision, 11% recall) may make a practical restart signal depending on restart cost tolerance.
+Note: the JDE results were obtained in shadow mode — predictions were made but no automated action was taken. The example results are tuned for F1 as a neutral baseline; however, the high-precision operating points described in the Results section may make a practical alert or restart signal depending on restart cost tolerance.
 
 ## Approach
 
@@ -68,11 +68,22 @@ The following results are from evaluation on a private dataset. Performance will
 
 LogSeer combines a dilated CNN (LogCNNv2) with XGBoost. The two models are intentionally complementary — XGBoost detects anomalies through token frequency and TF-IDF signals, while the CNN captures sequential and contextual patterns in the log. They are expected to miss different errors, and the ensemble value comes from that disagreement.
 
-**Best F1**: OR ensemble achieves F1=0.464 — approximately 0.05 above XGB alone (best threshold: NN=0.86, XGB=0.50).
+Individual model results (100-repetition aggregate, 1000 error samples):
 
-**High-precision mode**: AND ensemble at (NN=0.82, XGB=0.82) achieves 82% precision at 11% recall. When both models agree, the alert is almost always correct.
+| Model | Precision | Recall | F1 |
+|---|---|---|---|
+| LogCNNv2 | 0.683 | 0.157 | 0.255 |
+| XGBoost | 0.615 | 0.312 | 0.414 |
 
-Thresholds are configurable via `nn_threshold` and `sklearn_threshold`. The sweep tables printed during training show the full tradeoff surface.
+The CNN alone has high precision but low recall — it fires rarely, but usually correctly. XGBoost has higher recall and covers many cases the CNN misses. Overlap between the two is 112/1000 errors; 45 are CNN-only and 200 are XGBoost-only true positives.
+
+**OR ensemble — peak F1**: F1=0.452 at (NN=0.82, XGB=0.50) — approximately 0.04 above XGBoost alone. This is the best operating point if catching as many failures as possible is the goal.
+
+**OR ensemble — balanced**: (NN=0.96, XGB=0.80) → 70% precision, 26% recall, F1=0.375. Useful when the cost of false positives is moderate and catching a quarter of failures preventively has operational value.
+
+**AND ensemble — high-precision**: (NN=0.86, XGB=0.50) → precision=0.772, recall=0.112. When both models agree, the alert is almost always correct. The AND sweep reaches 86%+ precision at very low recall — suitable as a conservative automated restart signal.
+
+Thresholds are configurable via `nn_threshold` and `sklearn_threshold` in `config.yaml`. The sweep tables printed during training show the full OR and AND tradeoff surfaces.
 
 The ensemble gain over individual models is consistent across all evaluation runs, confirming the complementarity is structural rather than a sampling artifact.
 

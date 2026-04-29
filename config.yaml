@@ -2,6 +2,7 @@
 data_dir: ./logs
 model_save_path: logseer.keras
 tokenizer_path: tokenizer.pickle
+xgb_path: xgb.pkl
 
 # Data
 numchar: 3000

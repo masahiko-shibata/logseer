@@ -1,4 +1,5 @@
 import pickle
+import sys
 import numpy as np
 import keras
 from keras import optimizers
@@ -146,7 +147,7 @@ def train_sklearn(tokenizer, train_texts, test_texts, train_labels, test_labels,
     tester.testModel(model, test_mat, test_labels, threshold=sklearn_threshold)
 
 
-def print_ensemble(tester, ensemble_model=None, write_log=False, sweep_start=0.50, sweep_end=0.85, sweep_step=0.05):
+def print_ensemble(tester, ensemble_model=None, sweep_start=0.50, sweep_end=0.85, sweep_step=0.05):
     nn_row  = next((r for r in tester.stored if r[0] not in SKLEARN_MODELS), None)
     if ensemble_model:
         skl_row = next((r for r in tester.stored if r[0] == ensemble_model), None)
@@ -236,12 +237,6 @@ def print_ensemble(tester, ensemble_model=None, write_log=False, sweep_start=0.5
             s_f1 = 2 * s_p * s_r / (s_p + s_r) if (s_p + s_r) > 0 else 0.0
             print(f'  {cnn_t:>5.2f}  {skl_t:>5.2f}  {s_tp:>5}  {s_fp:>5}  {s_p:>9.3f}  {s_r:>6.3f}  {s_f1:>6.3f}')
 
-    if write_log:
-        with open('ensemble.log', 'a', encoding='utf-8') as f:
-            f.write(f'{either_tp}\t{either_fp}\t{total_errors - either_tp}\t{total_errors}\n')
-        with open('result.txt', 'a', encoding='utf-8') as f:
-            f.write(f'EnsembleOR\t{or_p:.6f}\t{or_r:.6f}\t{or_f1:.6f}\t{total_errors}\t{either_tp}\t{either_fp}\n')
-            f.write(f'EnsembleAND\t{and_p:.6f}\t{and_r:.6f}\t{and_f1:.6f}\t{total_errors}\t{both_tp}\t{both_fp}\n')
 
 
 def significance_test(tester):
@@ -387,10 +382,23 @@ def run_training(
         print_ensemble(tester, ensemble_model=_ensemble_model,
                        sweep_start=sweep_start, sweep_end=sweep_end, sweep_step=sweep_step)
 
-    tester.total(heatmap=True)
-    print_ensemble(tester, ensemble_model=_ensemble_model, write_log=True,
-                   sweep_start=sweep_start, sweep_end=sweep_end, sweep_step=sweep_step)
-    significance_test(tester)
+    class _Tee:
+        def __init__(self, *files): self.files = files
+        def write(self, s):
+            for f in self.files: f.write(s)
+        def flush(self):
+            for f in self.files: f.flush()
+
+    with open('test_result.txt', 'w', encoding='utf-8') as rf:
+        old_stdout = sys.stdout
+        sys.stdout = _Tee(old_stdout, rf)
+        try:
+            tester.total(heatmap=True)
+            print_ensemble(tester, ensemble_model=_ensemble_model,
+                           sweep_start=sweep_start, sweep_end=sweep_end, sweep_step=sweep_step)
+            significance_test(tester)
+        finally:
+            sys.stdout = old_stdout
     if dump_proba:
         tester.dump_proba()
     return tester

@@ -84,6 +84,7 @@ def main():
         success_log_ratio=cfg.get('success_log_ratio', 99),
         success_log_ratio_test=cfg.get('success_log_ratio_test', 12.4),
         dump_proba=cfg.get('dump_proba', False),
+        label_smoothing=cfg.get('label_smoothing', 0.0),
     )
 
 

@@ -1,6 +1,6 @@
 # LogSeer
 
-Predicting enterprise system operation failures from server log state, before the operation begins.
+Predicting enterprise system operation failures from server log state - before the operation begins.
 
 ## Overview
 
@@ -32,7 +32,9 @@ This makes the problem harder — there is no explicit error signal in the input
 | False Negative (missed failure) | Full timeout + review + restart + re-attempt |
 | False Positive (false alarm) | Unnecessary restart and service disruption |
 
-The relative cost ratio between FN and FP depends on the system. For the JDE reference environment, FN costs approximately **3× more** than FP, so the system is tuned to favor recall.
+The relative cost ratio between FN and FP depends on the system and operational context. A missed failure (FN) may result in a costly timeout and recovery cycle, or may resolve itself depending on the nature of the failure. A false alarm (FP) would trigger an unnecessary preventive action such as a restart. The right operating point depends on which cost dominates in your environment — use the threshold sweep tables to explore the tradeoff.
+
+Note: the JDE results were obtained in shadow mode — predictions were made but no automated action was taken. The example results are tuned for F1 as a neutral baseline; however, the high-precision operating point (83% precision, 11% recall) may make a practical restart signal depending on restart cost tolerance.
 
 ## Approach
 
@@ -42,9 +44,9 @@ The pipeline includes:
 
 - **Multi-file log ingestion** — log files from multiple server processes are combined per operation into a single text representation
 - **Domain-aware preprocessing** — timestamps, IDs, IP addresses, and other high-cardinality tokens are normalized to reduce noise while preserving meaningful signal
-- **LogCNNLite** — a dilated 1D CNN that performed best in comparison against RNN-based models (LSTM, GRU, biLSTM, biGRU). Notably, this is a convolutional architecture more commonly associated with image processing, applied here to log token sequences — sequential models underperformed, suggesting the signal in these logs is not strongly order-dependent at the token level
+- **NNWorkV2** — a deep dilated 1D CNN that performed best in comparison against RNN-based models (LSTM, GRU, biLSTM, biGRU) and shallower CNN variants. Notably, this is a convolutional architecture more commonly associated with image processing, applied here to log token sequences — sequential models underperformed, suggesting the signal in these logs is not strongly order-dependent at the token level
 - **XGBoost** — a TF-IDF based classifier that captures anomalous token occurrence patterns
-- **Ensemble** — union of both model predictions. CNN and XGBoost capture fundamentally different failure signals: CNN learns positional and structural patterns in token sequences, while XGBoost detects anomalous token frequency patterns via TF-IDF. Both models consistently identify distinct failure cases the other misses — CNN-only and XGBoost-only true positives appear in every evaluation run. The union reliably gains ~10 F1 points over either model alone without a proportional increase in false positives
+- **Ensemble** — CNN and XGBoost are intentionally complementary. XGBoost detects anomalies through token frequency and TF-IDF signals; the CNN captures sequential and contextual patterns. They are expected to miss different errors, and the ensemble value comes from that disagreement. Both models consistently identify distinct failure cases the other misses — CNN-only and XGBoost-only true positives appear in every evaluation run.
 - **Repeated evaluation** — 100 randomized train/test splits with Fisher's exact significance testing for statistically reliable performance estimates
 
 > Note: log collection from live servers is handled by a separate pipeline outside this repository. This codebase assumes logs have already been collected and organized into the data directory structure described below.
@@ -54,20 +56,22 @@ The pipeline includes:
 The current implementation and training data are based on Oracle JD Edwards EnterpriseOne, a large-scale ERP platform widely used in enterprise environments. This was validated in a large JDE development environment at the global headquarters — with hundreds of concurrent developers and QA engineers.
 
 - Package deployments happen multiple times per day
-- A failed deployment times out after ~30 minutes, forcing all users offline
+- A failed deployment times out after ~30 minutes and must be re-attempted after recovery
 - Recovery (restart + re-deploy) takes approximately 15 minutes of additional downtime
 
-Before each deployment, LogSeer collects the current JDE server logs from all running kernel processes and predicts whether the deployment will succeed. If failure is predicted, preventive system restarts are initiated to avoid the timeout entirely.
+Before each deployment, LogSeer collects the current JDE server logs from all running kernel processes and predicts whether the deployment will succeed. If failure is predicted, a preventive system restart could be initiated before the deployment to avoid the timeout. During validation, the system ran in shadow mode — predictions were made but no automated action was taken.
 
 ## Results
 
-Evaluated on the JDE reference environment over 100 repeated random train/test splits:
+The following results are from evaluation on a private dataset. Performance will vary across environments — even systems using the same log format (e.g. other JDE installations) may have different failure signatures depending on their configuration, workload, and history. Training and evaluating on your own data is strongly recommended.
 
-| Model | Precision | Recall | F1 |
-|---|---|---|---|
-| LogCNNLite | 0.396 | 0.292 | 0.336 |
-| XGBoost | 0.590 | 0.296 | 0.394 |
-| Ensemble (CNN \| XGB) | 0.415 | 0.404 | 0.409 |
+LogSeer combines a dilated CNN (NNWorkV2) with XGBoost. The two models are intentionally complementary — XGBoost detects anomalies through token frequency and TF-IDF signals, while the CNN captures sequential and contextual patterns in the log. They are expected to miss different errors, and the ensemble value comes from that disagreement.
+
+**Best F1**: OR ensemble achieves F1=0.417 (precision 0.44, recall 0.40) — approximately 0.04 above XGB alone.
+
+**High-precision mode**: AND ensemble at (NN=0.82, XGB=0.82) achieves 83% precision at 11% recall. When both models agree, the alert is almost always correct.
+
+Thresholds are configurable via `nn_threshold` and `sklearn_threshold`. The sweep tables printed during training show the full tradeoff surface.
 
 The ensemble gain over individual models is consistent across all evaluation runs, confirming the complementarity is structural rather than a sampling artifact.
 
@@ -124,9 +128,7 @@ Once tuning is complete, run a single pass with the full training set and valida
 
 ### Why repeated splits?
 
-Repetition is particularly important when the number of failure examples in the training data is small. With only a few dozen to a few hundred failure cases, a single train/test split is heavily influenced by which examples land where by chance. Repeating with different random splits averages out this variance and gives a more reliable estimate of true model performance.
-
-With very large failure datasets (e.g. 10,000+ examples), a single split would likely suffice — but in practice, failure logs are expensive to collect and label, making this regime common.
+Repetition is particularly important when failure examples are scarce. In the JDE reference environment, 116 failure cases were collected over an extended period — a large dataset by enterprise standards, but still small enough that a single train/test split is heavily influenced by which examples land where by chance. Repeating with different random splits averages out this variance and gives a more reliable estimate of true model performance.
 
 ### Key configuration options
 

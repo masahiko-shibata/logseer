@@ -51,3 +51,6 @@ sklearn_threshold: 0.5
 
 # Probability dump for threshold analysis (writes proba.csv)
 dump_proba: false
+
+# Label smoothing for NN loss (0.0 = off, 0.1 = standard starting value)
+label_smoothing: 0.0

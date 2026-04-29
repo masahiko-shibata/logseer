@@ -55,7 +55,7 @@ def train_nn(model_name, embedding_layer, train_data, train_labels, val_data, va
              model_save_path, epochs, batch_size, learning_rate, max_loss, retrain=False,
              checkpoint_type='multi_metric', start_from_epoch=0, es_start_from_epoch=0,
              use_early_stopping=False, patience=None, monitor='val_recall', mode='max',
-             restore_best_weights=False, error_weight=1, threshold=0.5):
+             restore_best_weights=False, error_weight=1, threshold=0.5, label_smoothing=0.0):
     train_labels = np.array(train_labels, dtype=np.int32)
     val_labels   = np.array(val_labels,   dtype=np.int32)
 
@@ -73,7 +73,7 @@ def train_nn(model_name, embedding_layer, train_data, train_labels, val_data, va
         model = getModel(model_name, embedding_layer)
 
     optimizer = optimizers.Adam(learning_rate=learning_rate, beta_1=0.9, beta_2=0.999)
-    model.compile(loss='binary_crossentropy',
+    model.compile(loss=keras.losses.BinaryCrossentropy(label_smoothing=label_smoothing),
                   optimizer=optimizer,
                   metrics=[keras.metrics.Precision(name='precision'),
                            keras.metrics.Recall(name='recall'),
@@ -301,6 +301,7 @@ def run_training(
     success_log_ratio=99,
     success_log_ratio_test=12.4,
     dump_proba=False,
+    label_smoothing=0.0,
 ):
     """Run the full training loop and return the Tester instance.
 
@@ -369,6 +370,7 @@ def run_training(
                 restore_best_weights=restore_best_weights,
                 error_weight=nn_error_weight,
                 threshold=nn_threshold,
+                label_smoothing=label_smoothing,
             )
             if not ok:
                 continue

@@ -251,10 +251,10 @@ addModel('GRU',            plainGRU)
 addModel('NNWork',         NNWork)
 
 
-def NNWorkV2(embedding_layer):
+def LogCNNv2(embedding_layer):
 
     dr, ks = 2, 3
-    model = Sequential(name='NNWorkV2')
+    model = Sequential(name='LogCNNv2')
     model.add(embedding_layer)
     model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
     model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
@@ -279,4 +279,4 @@ def NNWorkV2(embedding_layer):
     model.add(Dense(1, activation='sigmoid'))
     return model
 
-addModel('NNWorkV2',       NNWorkV2)
+addModel('LogCNNv2',       LogCNNv2)

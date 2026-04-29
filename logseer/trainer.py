@@ -210,7 +210,8 @@ def print_ensemble(tester, ensemble_model=None, sweep_start=0.50, sweep_end=0.85
     prob_stats(f'{skl_name} TP probs', skl_prob, errors & (skl == 1))
     prob_stats(f'{skl_name} FP probs', skl_prob, ~errors & (skl == 1))
 
-    thresholds = np.arange(sweep_start, sweep_end + sweep_step / 2, sweep_step)
+    n_steps = round((sweep_end - sweep_start) / sweep_step) + 1
+    thresholds = np.linspace(sweep_start, sweep_end, n_steps)
     print()
     print('  -- AND threshold sweep --')
     print(f'  {"NN_t":>5}  {"SKL_t":>5}  {"TP":>5}  {"FP":>5}  {"precision":>9}  {"recall":>6}  {"F1":>6}')

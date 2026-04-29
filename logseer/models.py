@@ -163,6 +163,27 @@ def LogCNNAttn(embedding_layer):
     model.add(Dense(1, activation='sigmoid'))
     return model
 
+def LogCNNv2(embedding_layer):
+
+    dr, ks = 2, 3
+    model = Sequential(name='LogCNNv2')
+    model.add(embedding_layer)
+    model.add(Conv1D(filters=16, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
+    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
+    model.add(MaxPooling1D(pool_size=5))
+    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
+    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
+    model.add(MaxPooling1D(pool_size=5))
+    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
+    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
+    model.add(MaxPooling1D(pool_size=5))
+    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
+    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
+    model.add(GlobalAveragePooling1D())
+    model.add(Dense(32, activation='elu'))
+    model.add(Dense(1, activation='sigmoid'))
+    return model
+
 
 def simpleNN(MAX_SEQUENCE_LENGTH):
     model = Sequential(name='SimpleNN')
@@ -218,65 +239,13 @@ def plainGRU(embedding_layer):
     model.add(Dense(1, activation='sigmoid'))
     return model
 
-def NNWork(embedding_layer):
-
-    dr, ks = 2, 3
-    model = Sequential(name='NNWork')
-    model.add(embedding_layer)
-    model.add(Conv1D(filters=16, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(MaxPooling1D(pool_size=5))
-    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(MaxPooling1D(pool_size=5))
-    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(MaxPooling1D(pool_size=5))
-    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(GlobalAveragePooling1D())
-    model.add(Dense(32, activation='elu'))
-    model.add(Dense(1, activation='sigmoid'))
-    return model
-
 addModel('conv',           convNet)
 addModel('vgg',            vgglite)
 addModel('LogCNN',         LogCNN)
 addModel('LogCNNLite',     LogCNNLite)
 addModel('LogCNNAttn',     LogCNNAttn)
+addModel('LogCNNv2',         LogCNNv2)
 addModel('LSTM',           LSTMModel)
 addModel('biLSTM',         biLSTMModel)
 addModel('biGRU',          biGRU)
 addModel('GRU',            plainGRU)
-addModel('NNWork',         NNWork)
-
-
-def LogCNNv2(embedding_layer):
-
-    dr, ks = 2, 3
-    model = Sequential(name='LogCNNv2')
-    model.add(embedding_layer)
-    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(AveragePooling1D(pool_size=5))
-    model.add(Dropout(0.2))
-    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(AveragePooling1D(pool_size=5))
-    model.add(Dropout(0.2))
-    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(AveragePooling1D(pool_size=5))
-    model.add(Dropout(0.2))
-    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(Conv1D(filters=32, kernel_size=ks, dilation_rate=dr, activation='elu', padding='same'))
-    model.add(GlobalAveragePooling1D())
-    model.add(Dense(128, activation='elu'))
-    model.add(Dropout(0.3))
-    model.add(Dense(64, activation='elu'))
-    model.add(Dense(1, activation='sigmoid'))
-    return model
-
-addModel('LogCNNv2',       LogCNNv2)

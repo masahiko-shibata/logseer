@@ -155,7 +155,57 @@ NUM_CHAR              = 3000          # characters read from tail of each log fi
 TO_ID                 = 6000          # upper bound of operation IDs to include
 ```
 
+## Prediction
+
+After training, copy `logseer.keras`, `tokenizer.pickle`, and `xgb.pkl` to the project root (or update `config.yaml` with their paths), then run:
+
+```bash
+python predict.py /path/to/logs
+```
+
+The input directory should contain one subdirectory per operation run, each holding its log files — the same structure as the training data, without the `error/` / `success/` split.
+
+Output:
+
+```
+  Set          NN_prob   XGB_prob      OR    AND  Note
+  --------------------------------------------------------------------------
+  20240501    0.9721     0.8803     ERR     ERR  RESTART
+  20240502    0.4102     0.2914      ok      ok  OK
+```
+
+Exit codes for automation (e.g. Rundeck):
+
+| Code | Meaning |
+|------|---------|
+| `0`  | OK — both models below threshold |
+| `1`  | ALERT — OR triggered, monitor closely |
+| `2`  | RESTART — AND triggered, hold deployment |
+
+### Thresholds
+
+Thresholds are set in `config.yaml`:
+
+```yaml
+nn_threshold: 0.5
+sklearn_threshold: 0.5
+```
+
+Choose an operating point based on your cost tolerance (see Results section and `example_test_result.txt` for the full sweep):
+
+| Mode | nn_threshold | sklearn_threshold | Precision | Recall |
+|------|-------------|-------------------|-----------|--------|
+| Best F1 | 0.82 | 0.50 | 0.60 | 0.36 |
+| Balanced OR | 0.96 | 0.80 | 0.70 | 0.26 |
+| High-precision AND | 0.86 | 0.50 | 0.77 | 0.11 |
+
+The AND (RESTART) signal uses the same thresholds — tighten both to raise AND precision further.
+
 ## Requirements
+
+```bash
+pip install -r requirements.txt
+```
 
 ```
 tensorflow>=2.12

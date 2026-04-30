@@ -19,25 +19,30 @@ Google Colab requires no local setup. The self-hosted notebook and CLI options r
 The notebooks clone the repo from GitHub automatically — no manual setup needed.
 
 **Training**
-1. Upload your training data as `data.zip` to `My Drive/Colab Notebooks/logseer/data/` in Google Drive
-2. Open `notebooks/train.ipynb` in Colab
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/masahiko-shibata/logseer/blob/main/notebooks/train.ipynb)
+
+1. Open `notebooks/train.ipynb` in Colab using the badge above
+2. Upload your training data as `data.zip` to `My Drive/Colab Notebooks/logseer/data/` in Google Drive — the notebook header describes the required folder structure
 3. Run the **Setup** cell — it clones the repo automatically on first run
 4. Run the **Data copy from Google Drive** cell (Colab-only) to load your data
 5. Adjust the **Configuration** cell if needed, then run the **Training loop** cell
 6. Run the **Copy model files to Google Drive** cell (Colab-only) to save trained models to `My Drive/Colab Notebooks/logseer/models/`
 
 **Inference**
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/masahiko-shibata/logseer/blob/main/notebooks/predict.ipynb)
+
 1. Ensure trained model files (`logseer.keras`, `tokenizer.pickle`, `xgb.pkl`) are in `My Drive/Colab Notebooks/logseer/models/`
 2. Upload your log data as `data_current.zip` to `My Drive/Colab Notebooks/logseer/data/`
-3. Open `notebooks/predict.ipynb` in Colab and run the **Setup** cell
+3. Open `notebooks/predict.ipynb` in Colab using the badge above and run the **Setup** cell
 4. Adjust thresholds in the **Configuration** cell if needed
 5. Run the **Copy data and trained models from Google Drive** cell (Colab-only), then run **Load models and predict**
 
 ### Self-hosted Notebook
 1. `git clone https://github.com/masahiko-shibata/logseer.git` and `pip install -r requirements.txt`
-2. Place your log data under `data/error/` and `data/success/` (or set `DATA_DIR` in the Configuration cell to point elsewhere)
-3. Open `notebooks/train.ipynb` and run all cells, skipping the Colab-only Drive cells — trained models are saved to the project root
-4. For inference, open `notebooks/predict.ipynb`, set `DATA_DIR` in the Configuration cell, and run
+2. Open `notebooks/train.ipynb`, set `DATA_DIR` in the Configuration cell, and run all cells, skipping the Colab-only Drive cells — the notebook header describes the required folder structure
+3. For inference, open `notebooks/predict.ipynb`, set `DATA_DIR` in the Configuration cell, and run
 
 ### CLI
 1. `git clone https://github.com/masahiko-shibata/logseer.git` and `pip install -r requirements.txt`

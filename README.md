@@ -12,18 +12,32 @@ It is designed to generalize to any system and any operation type. Oracle JD Edw
 
 ## Quick Start
 
-Google Colab requires no local setup. The local notebook and CLI options require Python 3 and the dependencies in `requirements.txt`.
+Google Colab requires no local setup. The self-hosted notebook and CLI options require Python 3 and the dependencies in `requirements.txt`.
 
 ### Google Colab
-1. Upload your log data to Google Drive
-2. Open `notebooks/train.ipynb` in Colab and run all cells — the Drive cells handle data loading and model saving
-3. For inference, open `notebooks/predict.ipynb`, point `DATA_DIR` at your log sets, and run
 
-### Local notebook
+The notebooks clone the repo from GitHub automatically — no manual setup needed.
+
+**Training**
+1. Upload your training data as `data.zip` to `My Drive/Colab Notebooks/logseer/data/` in Google Drive
+2. Open `notebooks/train.ipynb` in Colab
+3. Run the **Setup** cell — it clones the repo automatically on first run
+4. Run the **Data copy from Google Drive** cell (Colab-only) to load your data
+5. Adjust the **Configuration** cell if needed, then run the **Training loop** cell
+6. Run the **Copy model files to Google Drive** cell (Colab-only) to save trained models to `My Drive/Colab Notebooks/logseer/models/`
+
+**Inference**
+1. Ensure trained model files (`logseer.keras`, `tokenizer.pickle`, `xgb.pkl`) are in `My Drive/Colab Notebooks/logseer/models/`
+2. Upload your log data as `data_current.zip` to `My Drive/Colab Notebooks/logseer/data/`
+3. Open `notebooks/predict.ipynb` in Colab and run the **Setup** cell
+4. Adjust thresholds in the **Configuration** cell if needed
+5. Run the **Copy data and trained models from Google Drive** cell (Colab-only), then run **Load models and predict**
+
+### Self-hosted Notebook
 1. `git clone https://github.com/masahiko-shibata/logseer.git` and `pip install -r requirements.txt`
-2. Place your log data in `data/error/` and `data/success/`
-3. Open `notebooks/train.ipynb` and run all cells — trained models are saved to the project root
-4. For inference, open `notebooks/predict.ipynb`, set `DATA_DIR`, and run
+2. Place your log data under `data/error/` and `data/success/` (or set `DATA_DIR` in the Configuration cell to point elsewhere)
+3. Open `notebooks/train.ipynb` and run all cells, skipping the Colab-only Drive cells — trained models are saved to the project root
+4. For inference, open `notebooks/predict.ipynb`, set `DATA_DIR` in the Configuration cell, and run
 
 ### CLI
 1. `git clone https://github.com/masahiko-shibata/logseer.git` and `pip install -r requirements.txt`

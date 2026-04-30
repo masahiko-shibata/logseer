@@ -12,6 +12,8 @@ It is designed to generalize to any system and any operation type. Oracle JD Edw
 
 ## Quick Start
 
+Google Colab requires no local setup. The local notebook and CLI options require Python 3 and the dependencies in `requirements.txt`.
+
 ### Google Colab
 1. Upload your log data to Google Drive
 2. Open `notebooks/train.ipynb` in Colab and run all cells — the Drive cells handle data loading and model saving

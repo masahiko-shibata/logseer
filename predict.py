@@ -57,24 +57,30 @@ def main():
         print('No processable log sets found.')
         sys.exit(1)
 
-    has_xgb = results[0]['xgb_prob'] is not None
+    has_xgb   = results[0]['xgb_prob'] is not None
+    single    = len(results) == 1
     w = max(len(r['name']) for r in results)
     w = max(w, 8)
     print()
     if has_xgb:
-        hdr = f'  {"Set":<{w}}  {"NN_prob":>8}  {"XGB_prob":>8}  {"OR":>5}  {"AND":>5}  Note'
+        hdr = f'  {"Set":<{w}}  {"NN_prob":>8}  {"XGB_prob":>8}  {"OR":>5}  {"AND":>5}' + ('  Note' if single else '')
         print(hdr)
         print('  ' + '-' * len(hdr))
         for r in results:
-            print(f'  {r["name"]:<{w}}  {r["nn_prob"]:>8.4f}  {r["xgb_prob"]:>8.4f}'
-                  f'  {"ERR" if r["or_pred"] else "ok":>5}  {"ERR" if r["and_pred"] else "ok":>5}'
-                  f'  {r["outcome"]}')
+            line = (f'  {r["name"]:<{w}}  {r["nn_prob"]:>8.4f}  {r["xgb_prob"]:>8.4f}'
+                    f'  {"ERR" if r["or_pred"] else "ok":>5}  {"ERR" if r["and_pred"] else "ok":>5}')
+            if single:
+                line += f'  {r["outcome"]}'
+            print(line)
     else:
-        hdr = f'  {"Set":<{w}}  {"NN_prob":>8}  {"NN":>5}  Note'
+        hdr = f'  {"Set":<{w}}  {"NN_prob":>8}  {"NN":>5}' + ('  Note' if single else '')
         print(hdr)
         print('  ' + '-' * len(hdr))
         for r in results:
-            print(f'  {r["name"]:<{w}}  {r["nn_prob"]:>8.4f}  {"ERR" if r["nn_pred"] else "ok":>5}  {r["outcome"]}')
+            line = f'  {r["name"]:<{w}}  {r["nn_prob"]:>8.4f}  {"ERR" if r["nn_pred"] else "ok":>5}'
+            if single:
+                line += f'  {r["outcome"]}'
+            print(line)
 
     print()
     any_restart = any(r['outcome'] == OUTCOME_RESTART for r in results)

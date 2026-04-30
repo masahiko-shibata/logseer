@@ -23,7 +23,7 @@ The notebooks clone the repo from GitHub automatically — no manual setup neede
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/masahiko-shibata/logseer/blob/main/notebooks/train.ipynb)
 
 1. Open `notebooks/train.ipynb` in Colab using the badge above — set the hardware accelerator to GPU first (**Runtime > Change runtime type > Hardware accelerator > GPU**), otherwise training will be very slow
-2. Upload your training data as `data.zip` to `My Drive/Colab Notebooks/logseer/data/` in Google Drive — the notebook header describes the required folder structure
+2. Upload your training data as `data.zip` to `My Drive/Colab Notebooks/logseer/data/` in Google Drive — the notebook header describes the required folder structure. Zip the `data/` folder itself, not its contents (the zip should extract to a `data/` folder)
 3. Run the **Setup** cell — it clones the repo automatically on first run
 4. Run the **Data copy from Google Drive** cell (Colab-only) to load your data
 5. Adjust the **Configuration** cell if needed, then run the **Training loop** cell

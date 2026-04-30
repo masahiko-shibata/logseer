@@ -23,6 +23,8 @@ def split_data(texts, labels, test_texts, test_labels,
         return (np.array(texts), np.array(labels),
                 np.array(test_texts), np.array(test_labels))
     nb_val = int(validation_split * len(texts))
+    if nb_val == 0:
+        return (np.array(texts), np.array(labels), np.array([]), np.array([]))
     return (np.array(texts[:-nb_val]), np.array(labels[:-nb_val]),
             np.array(texts[-nb_val:]), np.array(labels[-nb_val:]))
 
@@ -45,7 +47,7 @@ def prepare_sequences(tokenizer, train_texts, val_texts, test_texts, max_sequenc
     train_data = np.array(pad_sequences(train_seqs, maxlen=max_sequence_length), dtype=np.int32)
     val_data   = np.array(pad_sequences(val_seqs,   maxlen=max_sequence_length), dtype=np.int32)
     test_data  = np.array(pad_sequences(test_seqs,  maxlen=max_sequence_length), dtype=np.int32)
-    max_seq_len = max(len(s) for s in train_seqs + val_seqs)
+    max_seq_len = max((len(s) for s in train_seqs + val_seqs), default=0)
     print('Longest data seq in train/val %s tokens' % max_seq_len)
     print('Shape of train data:', train_data.shape)
     return train_data, val_data, test_data

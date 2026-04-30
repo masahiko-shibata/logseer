@@ -69,8 +69,7 @@ def main():
         for r in results:
             line = (f'  {r["name"]:<{w}}  {r["nn_prob"]:>8.4f}  {r["xgb_prob"]:>8.4f}'
                     f'  {"ERR" if r["or_pred"] else "ok":>5}  {"ERR" if r["and_pred"] else "ok":>5}')
-            if single:
-                line += f'  {r["outcome"]}'
+            line += f'  {r["outcome"]}'
             print(line)
     else:
         hdr = f'  {"Set":<{w}}  {"NN_prob":>8}  {"NN":>5}' + ('  Note' if single else '')
@@ -78,23 +77,23 @@ def main():
         print('  ' + '-' * len(hdr))
         for r in results:
             line = f'  {r["name"]:<{w}}  {r["nn_prob"]:>8.4f}  {"ERR" if r["nn_pred"] else "ok":>5}'
-            if single:
-                line += f'  {r["outcome"]}'
+            line += f'  {r["outcome"]}'
             print(line)
 
     print()
     any_restart = any(r['outcome'] == OUTCOME_RESTART for r in results)
     any_alert   = any(r['outcome'] == OUTCOME_ALERT   for r in results)
-    if any_restart:
-        print('OUTCOME: RESTART  (AND ensemble triggered — hold deployment)')
-        sys.exit(2)
-    elif any_alert:
-        print('OUTCOME: ALERT    (OR ensemble triggered — monitor closely)')
-        sys.exit(1)
-    else:
-        print('OUTCOME: OK')
-        sys.exit(0)
 
+    if single:
+        if any_restart:
+            print('OUTCOME: RESTART  (AND ensemble triggered — hold deployment)')
+            sys.exit(2)
+        elif any_alert:
+            print('OUTCOME: ALERT    (OR ensemble triggered — monitor closely)')
+            sys.exit(1)
+        else:
+            print('OUTCOME: OK')
+            sys.exit(0)
 
 if __name__ == '__main__':
     main()

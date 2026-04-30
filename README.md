@@ -6,9 +6,35 @@ Predicting enterprise system operation failures from server log state - before t
 
 Large enterprise systems — ERP platforms, middleware, batch processing infrastructure — run on multiple servers that continuously emit logs reflecting the current system state. When a critical operation such as a deployment or batch job is initiated, it sometimes fails — not because the system is broken, but because its current state is incompatible with that particular operation succeeding. These failures are often costly: the operation may run for a long time before hitting an error or timeout, and recovery requires intervention and a re-attempt.
 
-LogSeer collects logs from all relevant servers, reads the current system state, and predicts whether a planned operation will succeed or fail — **before it is initiated**. If failure is predicted, a preventive action can be taken before the operation starts — such as holding the operation, rescheduling, or restarting the system — avoiding the costly failure entirely.
+LogSeer reads those logs, assesses the current system state, and predicts whether a planned operation will succeed or fail — **before it is initiated**. If failure is predicted, a preventive action can be taken before the operation starts — such as holding the operation, rescheduling, or restarting the system — avoiding the costly failure entirely.
 
 It is designed to generalize to any system and any operation type. Oracle JD Edwards (JDE) EnterpriseOne serves as the primary implementation and validation environment.
+
+## Quick Start
+
+### Google Colab
+1. Upload your log data to Google Drive
+2. Open `notebooks/train.ipynb` in Colab and run all cells — the Drive cells handle data loading and model saving
+3. For inference, open `notebooks/predict.ipynb`, point `DATA_DIR` at your log sets, and run
+
+### Local notebook
+1. `git clone https://github.com/masahiko-shibata/logseer.git` and `pip install -r requirements.txt`
+2. Place your log data in `data/error/` and `data/success/`
+3. Open `notebooks/train.ipynb` and run all cells — trained models are saved to the project root
+4. For inference, open `notebooks/predict.ipynb`, set `DATA_DIR`, and run
+
+### CLI
+1. `git clone https://github.com/masahiko-shibata/logseer.git` and `pip install -r requirements.txt`
+2. Place your log data under the logseer root in `data/error/` and `data/success/` (or pass `data_dir=` as an override)
+3. Train:
+   ```bash
+   python train.py data_dir=your_data
+   ```
+   Any config key can be overridden as `key=value` (e.g. `model_name=LogCNNv2 epochs=60`). Trained models are saved to the project root.
+4. Run prediction:
+   ```bash
+   python predict.py /path/to/your/logs
+   ```
 
 ## Problem
 
@@ -38,7 +64,7 @@ Note: the JDE results were obtained in shadow mode — predictions were made but
 
 ## Approach
 
-LogSeer ingests log files collected from all relevant servers, combines them into a single representation of the current system state, preprocessed, and classified as predicted success or predicted failure.
+LogSeer ingests pre-collected log files from all relevant servers, combines them into a single representation of the current system state, and classifies it as predicted success or predicted failure.
 
 The pipeline includes:
 
@@ -47,20 +73,20 @@ The pipeline includes:
 - **LogCNNv2** — a deep dilated 1D CNN that performed best in comparison against RNN-based models (LSTM, GRU, biLSTM, biGRU) and shallower CNN variants. Notably, this is a convolutional architecture more commonly associated with image processing, applied here to log token sequences — sequential models underperformed, suggesting the signal in these logs is not strongly order-dependent at the token level
 - **XGBoost** — a TF-IDF based classifier that captures anomalous token occurrence patterns
 - **Ensemble** — CNN and XGBoost are intentionally complementary. XGBoost detects anomalies through token frequency and TF-IDF signals; the CNN captures sequential and contextual patterns. They are expected to miss different errors, and the ensemble value comes from that disagreement. Both models consistently identify distinct failure cases the other misses — CNN-only and XGBoost-only true positives appear in every evaluation run.
-- **Repeated evaluation** — 100 randomized train/test splits with Fisher's exact significance testing for statistically reliable performance estimates
+- **Repeated evaluation** — randomized train/test splits (configurable, default 100) with Fisher's exact significance testing for statistically reliable performance estimates
 - **Token importance analysis** — XGBoost token importance was analyzed across the reference environment. No individual tokens stood out as dominant failure indicators — the signal is diffuse across many tokens rather than concentrated in a few. This is a key motivation for an ML approach: there is no simple grep rule that captures failure state
 
 > Note: log collection from live servers is handled by a separate pipeline outside this repository. This codebase assumes logs have already been collected and organized into the data directory structure described below.
 
 ## JDE Reference Implementation
 
-The current implementation and training data are based on Oracle JD Edwards EnterpriseOne, a large-scale ERP platform widely used in enterprise environments. This was validated in a large JDE development environment at the global headquarters — with hundreds of concurrent developers and QA engineers.
+The current implementation is built around Oracle JD Edwards EnterpriseOne, a large-scale ERP platform widely used in enterprise environments. This was validated in a large, live JDE environment with hundreds of concurrent developers and QA engineers.
 
 - Package deployments happen multiple times per day
 - A failed deployment times out after ~30 minutes and must be re-attempted after recovery
 - Recovery (restart + re-deploy) takes approximately 15 minutes of additional downtime
 
-Before each deployment, LogSeer collects the current JDE server logs from all running kernel processes and predicts whether the deployment will succeed. If failure is predicted, a preventive system restart could be initiated before the deployment to avoid the timeout. During validation, the system ran in shadow mode — predictions were made but no automated action was taken.
+Before each deployment, LogSeer reads the current JDE server logs from all running kernel processes and predicts whether the deployment will succeed. If failure is predicted, a preventive system restart could be initiated before the deployment to avoid the timeout. During validation, the system ran in shadow mode — predictions were made but no automated action was taken.
 
 ## Results
 

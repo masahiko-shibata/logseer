@@ -1,8 +1,9 @@
-# LogSeer
+<div align="center">
+<h1>LogSeer</h1>
+<em>Predict enterprise system operation failures from server log state — before the operation begins.</em>
+</div>
 
-Predicting enterprise system operation failures from server log state - before the operation begins.
-
-## Overview
+---
 
 Large enterprise systems — ERP platforms, middleware, batch processing infrastructure — run on multiple servers that continuously emit logs reflecting the current system state. When a critical operation such as a deployment or batch job is initiated, it sometimes fails — not because the system is broken, but because its current state is incompatible with that particular operation succeeding. These failures are often costly: the operation may run for a long time before hitting an error or timeout, and recovery requires intervention and a re-attempt.
 

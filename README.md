@@ -165,7 +165,7 @@ python predict.py /path/to/logs
 
 The input directory should contain one subdirectory per operation run, each holding its log files — the same structure as the training data, without the `error/` / `success/` split.
 
-Output:
+**Diagnostic scan** — multiple log sets, e.g. to review recent history:
 
 ```
   Set          NN_prob   XGB_prob      OR    AND  Note
@@ -174,7 +174,17 @@ Output:
   20240502    0.4102     0.2914      ok      ok  OK
 ```
 
-Exit codes for automation (e.g. Rundeck):
+**Automated pre-operation check** — single log set, for use in deployment pipelines:
+
+```
+  Set          NN_prob   XGB_prob      OR    AND  Note
+  --------------------------------------------------------------------------
+  20240501    0.9721     0.8803     ERR     ERR  RESTART
+
+OUTCOME: RESTART  (AND ensemble triggered — hold deployment)
+```
+
+Exit codes (single-set mode only), for automation (e.g. Rundeck):
 
 | Code | Meaning |
 |------|---------|

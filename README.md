@@ -231,7 +231,11 @@ SKLEARN_MODELS        = 'xgb'         # sklearn models to train: 'xgb', 'svm', '
 
 ## Prediction
 
-After training, model files (`logseer.keras`, `tokenizer.pickle`, and the sklearn model file e.g. `xgb.pkl`, `rf.pkl`) are saved to the project root automatically. If using Colab, they can be saved to Google Drive and retrieved from there, or manually uploaded. Then run:
+After training, model files (`logseer.keras`, `tokenizer.pickle`, and the sklearn model file e.g. `xgb.pkl`, `rf.pkl`) are saved to the project root automatically. If using Colab, they are saved to Google Drive and can be retrieved from there.
+
+For an interactive workflow, use `notebooks/predict.ipynb` — open it in Colab using the badge in the Quick Start section, or run it on a self-hosted Jupyter environment. Set `DATA_DIR` in the Configuration cell to point to your log data and run all cells.
+
+For CLI use:
 
 ```bash
 python predict.py /path/to/logs

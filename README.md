@@ -25,7 +25,7 @@ The notebooks clone the repo from GitHub automatically — no manual setup neede
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/masahiko-shibata/logseer/blob/main/notebooks/train.ipynb)
 
 1. Open `notebooks/train.ipynb` in Colab using the badge above — set the hardware accelerator to GPU first (**Runtime > Change runtime type > Hardware accelerator > GPU**), otherwise training will be very slow
-2. Upload your training data as `data.zip` to `My Drive/Colab Notebooks/logseer/data/` in Google Drive — the notebook header describes the required folder structure. Zip the `data/` folder itself, not its contents (the zip should extract to a `data/` folder)
+2. Upload your training data as `data.zip` to `My Drive/Colab Notebooks/logseer/data/` in Google Drive — the notebook header describes the required folder structure. Store `error` and `success` directories under `data/` folder and zip the folder itself (the zip should extract to a `data/` folder).
 3. Run the **Setup** cell — it clones the repo automatically on first run
 4. Run the **Data copy from Google Drive** cell (Colab-only) to load your data
 5. Adjust the **Configuration** cell if needed, then run the **Training loop** cell
@@ -42,12 +42,12 @@ The notebooks clone the repo from GitHub automatically — no manual setup neede
 5. Run the **Copy data and trained models from Google Drive** cell (Colab-only), then run **Load models and predict**
 
 ### Self-hosted Notebook
-1. `git clone https://github.com/masahiko-shibata/logseer.git` and `pip install -r requirements.txt`
+1. Under a directory where your Notebook is started, `git clone https://github.com/masahiko-shibata/logseer.git` and `cd logseer` then `pip install -r requirements.txt`
 2. Open `notebooks/train.ipynb`, set `DATA_DIR` in the Configuration cell, and run all cells, skipping the Colab-only Drive cells — the notebook header describes the required folder structure
 3. For inference, open `notebooks/predict.ipynb`, set `DATA_DIR` in the Configuration cell, and run
 
 ### CLI
-1. `git clone https://github.com/masahiko-shibata/logseer.git` and `pip install -r requirements.txt`
+1. `git clone https://github.com/masahiko-shibata/logseer.git` and `cd logseer` then `pip install -r requirements.txt`
 2. Place your log data under the logseer root in `data/error/` and `data/success/` (or pass `data_dir=` as an override)
 3. Train:
    ```bash

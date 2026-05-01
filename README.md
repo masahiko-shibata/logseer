@@ -132,8 +132,11 @@ The CNN has higher precision than XGBoost but catches only 15% of failures. XGBo
 
 | Ensemble | NN_t | SKL_t | Precision | Recall | F1 |
 |---|---|---|---|---|---|
+| OR max recall | 0.50 | 0.50 | 0.439 | 0.407 | 0.422 |
 | OR peak F1 | 0.82 | 0.50 | 0.595 | 0.364 | 0.452 |
 | AND high-precision | 0.86 | 0.70 | 0.813 | 0.100 | 0.178 |
+
+**OR max recall**: (NN=0.50, XGB=0.50) → precision=0.439, recall=0.407. The highest recall — at the default threshold of 0.50. Catches 4 in 10 failures at the cost of lower precision. Suitable for monitoring dashboards where human review filters out false positives.
 
 **OR ensemble — peak F1**: F1=0.452 at (NN=0.82, XGB=0.50) — approximately 0.04 above XGBoost alone. Use as a reference point; tune thresholds toward recall or precision depending on your operational priorities.
 

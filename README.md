@@ -1,9 +1,14 @@
 # LogSeer
 
-Predicting enterprise system operation failures from server log state — before the operation begins.
+Predict failures **before they happen** — and avoid costly failures entirely.
 
-If critical operations on your system fail unpredictably — timing out and requiring recovery before they can be re-attempted — LogSeer may help. It reads your server logs and predicts whether it is likely to fail, so you can act preventively rather than wait for a timeout or an error.
+LogSeer predicts whether a deployment, batch job, or other critical operation will fail — **before it starts** — allowing you to take preventive action instead of waiting for a failures and recovery cycle.
 
+In real enterprise environments, failures are often not caused by broken systems, but by transient system state. Operations run, hang, and fail — wasting time and requiring manual recovery.
+
+LogSeer reads your server logs, assesses the current system state, and flags high-risk operations in advance.
+
+I tuned the system to ~80% precision on ~10% of failures in the reference environment. With more data and environment-specific calibration, further improvements can be expected.
 ## Overview
 
 Large enterprise systems — ERP platforms, middleware, batch processing infrastructure — run on multiple servers that continuously emit logs reflecting the current system state. When a critical operation such as a deployment or batch job is initiated, it sometimes fails — not because the system is broken, but because its current state is incompatible with that particular operation succeeding. These failures are often costly: the operation may run for a long time before hitting an error or timeout, and recovery requires intervention and a re-attempt.
@@ -95,7 +100,7 @@ The pipeline includes:
 - **Domain-aware preprocessing** — timestamps, IDs, IP addresses, and other high-cardinality tokens are normalized to reduce noise while preserving meaningful signal
 - **LogCNNv2** — a deep dilated 1D CNN that performed best in comparison against RNN-based models (LSTM, GRU, biLSTM, biGRU) and shallower CNN variants. Notably, this is a convolutional architecture more commonly associated with image processing, applied here to log token sequences — sequential models underperformed, suggesting the signal in these logs is not strongly order-dependent at the token level
 - **XGBoost** — a TF-IDF based classifier that captures anomalous token occurrence patterns
-- **Ensemble** — CNN and XGBoost are intentionally complementary. XGBoost detects anomalies through token frequency and TF-IDF signals; the CNN captures sequential and contextual patterns. They are expected to miss different errors, and the ensemble value comes from that disagreement. Both models consistently identify distinct failure cases the other misses — CNN-only and XGBoost-only true positives appear in every evaluation run.
+- **Ensemble** — each model outputs a failure probability score. The OR signal fires if either score exceeds its threshold; the AND signal fires only if both do. CNN and XGBoost are intentionally complementary — XGBoost detects anomalies through token frequency and TF-IDF signals; the CNN captures sequential and contextual patterns. They are expected to miss different errors, and the ensemble value comes from that disagreement. Both models consistently identify distinct failure cases the other misses — CNN-only and XGBoost-only true positives appear in every evaluation run.
 - **Repeated evaluation** — randomized train/test splits (configurable, default 100) with Fisher's exact significance testing for statistically reliable performance estimates
 - **Token importance analysis** — XGBoost token importance was analyzed across the reference environment. No individual tokens stood out as dominant failure indicators — the signal is diffuse across many tokens rather than concentrated in a few. This is a key motivation for an ML approach: there is no simple grep rule that captures failure state
 
@@ -113,9 +118,7 @@ Before each deployment, LogSeer reads the current JDE server logs from all runni
 
 ## Results
 
-The following results are from evaluation on a private dataset. Performance will vary across environments — even systems using the same log format (e.g. other JDE installations) may have different failure signatures depending on their configuration, workload, and history. **Training on your own data is required** — no pre-trained models are included in this repository. Log data reflects environment-specific system state and should not leave the environment it was collected in.
-
-LogSeer combines a dilated CNN (LogCNNv2) with XGBoost. The two models are intentionally complementary — XGBoost detects anomalies through token frequency and TF-IDF signals, while the CNN captures sequential and contextual patterns in the log. They are expected to miss different errors, and the ensemble value comes from that disagreement.
+The following results are from evaluation on a private dataset. Performance will vary across environments — even systems using the same log format (e.g. other JDE installations) may have different failure signatures depending on their configuration, workload, and history. **Training on your own data is required** — no pre-trained models are included in this repository.
 
 Individual model results (100-repetition aggregate, 1000 error samples):
 
@@ -124,13 +127,16 @@ Individual model results (100-repetition aggregate, 1000 error samples):
 | LogCNNv2 | 0.683 | 0.157 | 0.255 |
 | XGBoost | 0.615 | 0.312 | 0.414 |
 
-The CNN alone has high precision but low recall — it fires rarely, but usually correctly. XGBoost has higher recall and covers many cases the CNN misses. Overlap between the two is 112/1000 errors; 45 are CNN-only and 200 are XGBoost-only true positives.
+The CNN has higher precision than XGBoost but catches only 15% of failures. XGBoost has broader coverage and catches many cases the CNN misses. Overlap between the two is 112/1000 errors; 45 are CNN-only and 200 are XGBoost-only true positives.
 
-**OR ensemble — peak F1**: F1=0.452 at (NN=0.82, XGB=0.50) — approximately 0.04 above XGBoost alone. This is the best operating point if catching as many failures as possible is the goal.
+| Ensemble | NN_t | SKL_t | Precision | Recall | F1 |
+|---|---|---|---|---|---|
+| OR peak F1 | 0.82 | 0.50 | 0.595 | 0.364 | 0.452 |
+| AND high-precision | 0.86 | 0.70 | 0.813 | 0.100 | 0.178 |
 
-**OR ensemble — balanced**: (NN=0.96, XGB=0.80) → 70% precision, 26% recall, F1=0.375. Useful when the cost of false positives is moderate and catching a quarter of failures preventively has operational value.
+**OR ensemble — peak F1**: F1=0.452 at (NN=0.82, XGB=0.50) — approximately 0.04 above XGBoost alone. Use as a reference point; tune thresholds toward recall or precision depending on your operational priorities.
 
-**AND ensemble — high-precision**: (NN=0.86, XGB=0.50) → precision=0.772, recall=0.112. When both models agree, the alert is almost always correct. The AND sweep reaches 86%+ precision at very low recall — suitable as a conservative automated restart signal.
+**AND ensemble — high-precision**: (NN=0.86, XGB=0.70) → precision=0.813, recall=0.100. When both models agree, the alert is almost always correct — suitable as a conservative automated restart signal.
 
 Thresholds are configurable via `nn_threshold` and `sklearn_threshold` in `config.yaml`. The sweep tables printed during training show the full OR and AND tradeoff surfaces.
 
@@ -141,17 +147,22 @@ The ensemble gain over individual models is consistent across all evaluation run
 ```
 logseer/
 ├── logseer/
-│   ├── loader.py        # Log file loading and preprocessing
-│   ├── models.py        # CNN, RNN, and attention-based model architectures
-│   ├── trainer.py       # Training loop, sklearn models, ensemble reporting
-│   ├── tester.py        # Model evaluation and result accumulation
-│   ├── checkpoints.py   # Custom Keras checkpoint callbacks
-│   ├── seer.py          # Inference class (Seer) used by predict.py and notebooks
+│   ├── loader.py             # Log file loading and preprocessing
+│   ├── models.py             # CNN, RNN, and attention-based model architectures
+│   ├── trainer.py            # Training loop, sklearn models, ensemble reporting
+│   ├── tester.py             # Model evaluation and result accumulation
+│   ├── checkpoints.py        # Custom Keras checkpoint callbacks
+│   ├── seer.py               # Inference class (Seer) used by predict.py and notebooks
 │   └── __init__.py
 ├── notebooks/
-│   ├── train.ipynb      # Training pipeline (Google Colab)
-│   └── predict.ipynb    # Inference on new log sets
-├── predict.py           # CLI prediction script (exit 0=OK, 1=ALERT, 2=RESTART)
+│   ├── train.ipynb           # Training pipeline
+│   ├── predict.ipynb         # Inference on new log sets
+│   └── token_importance.ipynb # XGBoost token importance analysis
+├── train.py                  # CLI training script
+├── predict.py                # CLI prediction script (exit 0=OK, 1=ALERT, 2=RESTART)
+├── tune_threshold.py         # Threshold tuning utility
+├── config.yaml               # Default configuration
+├── example_test_result.txt   # Example training output with threshold sweep tables
 └── requirements.txt
 ```
 
@@ -173,11 +184,23 @@ data/
 
 Each subdirectory contains the log files collected before a single operation run. Multiple log files per run are supported and combined during preprocessing.
 
+Subdirectory names can be any string. If they are integers, the `TO_ID` configuration option can be used to filter operations by ID range — otherwise leave `TO_ID` at its default.
+
+**Minimum data requirements** — with default settings, at least 10 error samples are needed for the test split alone, making ~100 error samples a practical lower bound for meaningful results. Training with only a handful of errors is possible with tuning but could produce unreliable estimates — the fewer the errors, the more each individual case dominates the result.
+
 ## Training
 
-Training runs on any Jupyter Notebook environment with GPU access — locally (e.g. a machine with an NVIDIA GPU running JupyterLab), or on Google Colab. Open `notebooks/train.ipynb`, configure the parameters in the Configuration cell, and run all cells.
+A GPU is not required, but is strongly recommended for NN training. With a ~1,500-operation dataset (~1GB) and default settings, expect several hours on a Colab T4 GPU. A faster GPU (Colab A100 or a mid-range consumer GPU) reduces this to around 4 hours. CPU-only NN training takes too long to be practical on Colab as sessions time out — use a self-hosted machine if running without a GPU. Sklearn-only training (`TEST_NN = False`) completes in minutes without a GPU.
 
-Two optional cells handle Google Drive integration for Colab users (loading data and saving the trained model). Skip these when running locally.
+Use `notebooks/train.ipynb` for an interactive workflow, or `train.py` for CLI-based training:
+
+```bash
+python train.py data_dir=your_data
+```
+
+Any config key can be overridden as `key=value`. See `config.yaml` for all options.
+
+Two optional notebook cells handle Google Drive integration for Colab users (loading data and saving the trained model). Skip these when running on a self-hosted environment.
 
 ### Two-phase workflow
 
@@ -187,26 +210,28 @@ Run many repeated train/test splits to evaluate model architecture and hyperpara
 
 **Phase 2 — Production model generation** (`REPETITION = 1`, `VALIDATE_ON_TEST_DATA = True`)
 
-Once tuning is complete, run a single pass with the full training set and validate on held-out test data. This produces the model file (`logseer.keras`) and tokenizer (`tokenizer.pickle`) used in production inference.
+Once tuning is complete, run a single pass with the full training set and validate on held-out test data. This produces the model files and a tokenizer file used in production inference.
 
 ### Why repeated splits?
 
-Repetition is particularly important when failure examples are scarce. In the JDE reference environment, 116 failure cases were collected over an extended period — a large dataset by enterprise standards, but still small enough that a single train/test split is heavily influenced by which examples land where by chance. Repeating with different random splits averages out this variance and gives a more reliable estimate of true model performance.
+Repetition is particularly important when failure examples are scarce. In the JDE reference environment, 116 failure cases were collected over an extended period — small by ML standards but costly to collect given how rarely failures occur in practice — small enough that a single train/test split is heavily influenced by which examples land where by chance. Repeating with different random splits averages out this variance and gives a more reliable estimate of true model performance.
 
 ### Key configuration options
 
 ```python
-MODEL_NAME            = 'LogCNNLite'  # model architecture to train
+MODEL_NAME            = 'LogCNNLite'  # neural network model architecture to train
 REPETITION            = 100           # number of repeated train/test splits (set to 1 for production)
 VALIDATE_ON_TEST_DATA = False         # set to True for production model generation
 EPOCHS                = 60
 NUM_CHAR              = 3000          # characters read from tail of each log file
-TO_ID                 = 6000          # upper bound of operation IDs to include
+TO_ID                 = 6000          # upper bound of operation IDs to include (requires integer-named data folders)
+TEST_NN               = True          # set to False to skip NN and run sklearn only (CPU-friendly)
+SKLEARN_MODELS        = 'xgb'         # sklearn models to train: 'xgb', 'svm', 'rf' (comma-separated)
 ```
 
 ## Prediction
 
-After training, copy `logseer.keras`, `tokenizer.pickle`, and `xgb.pkl` to the project root (or update `config.yaml` with their paths), then run:
+After training, model files (`logseer.keras`, `tokenizer.pickle`, and the sklearn model file e.g. `xgb.pkl`, `rf.pkl`) are saved to the project root automatically. If using Colab, they can be saved to Google Drive and retrieved from there, or manually uploaded. Then run:
 
 ```bash
 python predict.py /path/to/logs
@@ -250,32 +275,12 @@ nn_threshold: 0.5
 sklearn_threshold: 0.5
 ```
 
-Choose an operating point based on your cost tolerance (see Results section and `example_test_result.txt` for the full sweep):
-
-| Mode | nn_threshold | sklearn_threshold | Precision | Recall |
-|------|-------------|-------------------|-----------|--------|
-| Best F1 | 0.82 | 0.50 | 0.60 | 0.36 |
-| Balanced OR | 0.96 | 0.80 | 0.70 | 0.26 |
-| High-precision AND | 0.86 | 0.50 | 0.77 | 0.11 |
-
-The AND (RESTART) signal uses the same thresholds — tighten both to raise AND precision further.
+Choose an operating point based on your cost tolerance — see the Results section for reference values and `example_test_result.txt` for the full sweep.
 
 ## Requirements
 
 ```bash
 pip install -r requirements.txt
-```
-
-```
-tensorflow>=2.12
-keras>=2.12
-scikit-learn
-xgboost
-pandas
-matplotlib
-seaborn
-scipy
-numpy
 ```
 
 ## Status

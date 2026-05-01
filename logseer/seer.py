@@ -14,15 +14,19 @@ OUTCOME_RESTART = 'RESTART'
 class Seer:
 
     @classmethod
-    def from_files(cls, nn_model_path, tokenizer_path, xgb_path=None, **kwargs):
+    def from_files(cls, nn_model_path=None, tokenizer_path=None, xgb_path=None, **kwargs):
         """Load models from file paths and return a Seer instance."""
-        nn_model = load_model(nn_model_path)
+        nn_model = None
+        if nn_model_path and os.path.exists(nn_model_path):
+            nn_model = load_model(nn_model_path)
         with open(tokenizer_path, 'rb') as f:
             tokenizer = pickle.load(f)
         xgb_model = None
         if xgb_path and os.path.exists(xgb_path):
             with open(xgb_path, 'rb') as f:
                 xgb_model = pickle.load(f)
+        if nn_model is None and xgb_model is None:
+            raise ValueError('At least one of nn_model_path or xgb_path must be provided')
         return cls(nn_model, tokenizer, xgb_model, **kwargs)
 
     def __init__(self, nn_model, tokenizer, xgb_model=None, *,
@@ -56,10 +60,13 @@ class Seer:
         names = [t[1] for t in texts_with_names]
         texts = [t[0] for t in texts_with_names]
 
-        seqs     = self.tokenizer.texts_to_sequences(texts)
-        data     = np.array(pad_sequences(seqs, maxlen=self.max_sequence_length), dtype=np.int32)
-        nn_probs = self.nn_model.predict(data, verbose=0).flatten().tolist()
-        nn_preds = [1 if p >= self.nn_threshold else 0 for p in nn_probs]
+        nn_probs = [None] * len(texts)
+        nn_preds = [0]    * len(texts)
+        if self.nn_model is not None:
+            seqs     = self.tokenizer.texts_to_sequences(texts)
+            data     = np.array(pad_sequences(seqs, maxlen=self.max_sequence_length), dtype=np.int32)
+            nn_probs = self.nn_model.predict(data, verbose=0).flatten().tolist()
+            nn_preds = [1 if p >= self.nn_threshold else 0 for p in nn_probs]
 
         xgb_probs = [None] * len(texts)
         xgb_preds = [0]    * len(texts)
@@ -125,9 +132,10 @@ def print_results(results):
         print('No results.')
         return
     w       = max(len(r['name']) for r in results)
+    has_nn  = results[0]['nn_prob']  is not None
     has_xgb = results[0]['xgb_prob'] is not None
     single  = len(results) == 1
-    if has_xgb:
+    if has_nn and has_xgb:
         hdr = f'  {"Set":<{w}}  {"NN_prob":>8}  {"XGB_prob":>8}  {"OR":>5}  {"AND":>5}' + ('  Note' if single else '')
         print(hdr)
         print('  ' + '-' * len(hdr))
@@ -137,12 +145,21 @@ def print_results(results):
             if single:
                 line += f'  {r["outcome"]}'
             print(line)
-    else:
+    elif has_nn:
         hdr = f'  {"Set":<{w}}  {"NN_prob":>8}  {"NN":>5}' + ('  Note' if single else '')
         print(hdr)
         print('  ' + '-' * len(hdr))
         for r in results:
             line = f'  {r["name"]:<{w}}  {r["nn_prob"]:>8.4f}  {"ERR" if r["nn_pred"] else "ok":>5}'
+            if single:
+                line += f'  {r["outcome"]}'
+            print(line)
+    else:
+        hdr = f'  {"Set":<{w}}  {"XGB_prob":>8}  {"XGB":>5}' + ('  Note' if single else '')
+        print(hdr)
+        print('  ' + '-' * len(hdr))
+        for r in results:
+            line = f'  {r["name"]:<{w}}  {r["xgb_prob"]:>8.4f}  {"ERR" if r["xgb_pred"] else "ok":>5}'
             if single:
                 line += f'  {r["outcome"]}'
             print(line)

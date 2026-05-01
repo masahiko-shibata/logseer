@@ -2,6 +2,8 @@
 
 Predicting enterprise system operation failures from server log state — before the operation begins.
 
+If critical operations on your system fail unpredictably — timing out and requiring recovery before they can be re-attempted — LogSeer may help. It reads your server logs and predicts whether it is likely to fail, so you can act preventively rather than wait for a timeout or an error.
+
 ## Overview
 
 Large enterprise systems — ERP platforms, middleware, batch processing infrastructure — run on multiple servers that continuously emit logs reflecting the current system state. When a critical operation such as a deployment or batch job is initiated, it sometimes fails — not because the system is broken, but because its current state is incompatible with that particular operation succeeding. These failures are often costly: the operation may run for a long time before hitting an error or timeout, and recovery requires intervention and a re-attempt.

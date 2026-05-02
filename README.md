@@ -10,6 +10,8 @@ LogSeer reads your server logs, assesses the current system state, and flags hig
 
 Validated at ~80% precision on ~10% of failures in the reference environment after tuning on real system data.
 
+![demo](demo.gif)
+
 ## Overview
 
 Large enterprise systems — ERP platforms, middleware, batch processing infrastructure — run on multiple servers that continuously emit logs reflecting the current system state. When a critical operation such as a deployment or batch job is initiated, it sometimes fails — not because the system is broken, but because its current state is incompatible with that particular operation succeeding. These failures are often costly: the operation may run for a long time before hitting an error or timeout, and recovery requires intervention and a re-attempt.

@@ -8,7 +8,7 @@ In real enterprise environments, failures are often not caused by broken systems
 
 LogSeer reads your server logs, assesses the current system state, and flags high-risk operations in advance.
 
-Validated at ~80% precision on ~10% of failures in the reference environment after tuning. With more data and environment-specific calibration, further improvements can be expected.
+Validated at ~80% precision on ~10% of failures in the reference environment after tuning on real system data.
 
 ## Overview
 

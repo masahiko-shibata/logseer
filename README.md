@@ -191,7 +191,7 @@ Each subdirectory contains the log files collected before a single operation run
 
 Subdirectory names can be any string. If they are integers, the `TO_ID` configuration option can be used to filter operations by ID range — otherwise leave `TO_ID` at its default.
 
-**Minimum data requirements** — with default settings, at least 10 error samples are needed for the test split alone, making ~100 error samples a practical lower bound for meaningful results. Training with only a handful of errors is possible with tuning but could produce unreliable estimates — the fewer the errors, the more each individual case dominates the result.
+**Minimum data requirements** — with default settings, 10 error samples are needed for the test split alone, making ~100 error samples a practical lower bound for meaningful results. Training with only a handful of errors is possible with tuning but could produce unreliable estimates — the fewer the errors, the more each individual case dominates the result.
 
 ## Training
 

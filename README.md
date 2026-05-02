@@ -138,9 +138,9 @@ The CNN has higher precision than XGBoost but catches only 15% of failures. XGBo
 
 **OR max recall**: (NN=0.50, XGB=0.50) → precision=0.439, recall=0.407. The highest recall — at the default threshold of 0.50. Catches 4 in 10 failures at the cost of lower precision.
 
-**OR ensemble — peak F1**: F1=0.452 at (NN=0.82, XGB=0.50) — approximately 0.04 above XGBoost alone. Use as a reference point; tune thresholds toward recall or precision depending on your operational priorities.
+**OR peak F1**: F1=0.452 at (NN=0.82, XGB=0.50) — approximately 0.04 above XGBoost alone. Use as a reference point; tune thresholds toward recall or precision depending on your operational priorities.
 
-**AND ensemble — high-precision**: (NN=0.86, XGB=0.70) → precision=0.813, recall=0.100. When both models agree, the alert has high precision (~81%), making it suitable as a conservative automated restart signal.
+**AND high-precision**: (NN=0.86, XGB=0.70) → precision=0.813, recall=0.100. When both models agree, the alert has high precision (~81%), making it suitable as a conservative automated restart signal.
 Thresholds are configurable via `nn_threshold` and `sklearn_threshold` in `config.yaml`. The sweep tables printed during training show the full OR and AND tradeoff surfaces.
 
 The ensemble gain over individual models is consistent across all evaluation runs, confirming the complementarity is structural rather than a sampling artifact.

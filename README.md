@@ -224,7 +224,7 @@ Repetition is particularly important when failure examples are scarce. In the JD
 ### Key configuration options
 
 ```python
-MODEL_NAME            = 'LogCNNLite'  # neural network model architecture to train
+MODEL_NAME            = 'LogCNNv2'  # neural network model architecture to train
 REPETITION            = 100           # number of repeated train/test splits (set to 1 for production)
 VALIDATE_ON_TEST_DATA = False         # set to True for production model generation
 EPOCHS                = 60
